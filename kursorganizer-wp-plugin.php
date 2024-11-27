@@ -250,7 +250,6 @@ function kursorganizer_settings_page()
 
         <!-- URL Configuration Form -->
         <div class="card" style="max-width: 800px; margin-bottom: 20px;">
-            <h2>URL Konfiguration</h2>
             <form action="options.php" method="post">
                 <?php
                 settings_fields('kursorganizer_settings');
