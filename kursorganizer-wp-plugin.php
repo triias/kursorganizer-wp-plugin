@@ -30,10 +30,10 @@ function kursorganizer_init_updater()
     $updater = new KursOrganizer_Plugin_Updater(array(
         'slug' => plugin_basename(__FILE__), // Plugin Slug
         'proper_folder_name' => 'kursorganizer-wp-plugin', // Plugin folder name
-        'api_url' => 'https://api.github.com/repos/[YOUR-USERNAME]/[REPO-NAME]', // GitHub API URL
-        'raw_url' => 'https://raw.github.com/[YOUR-USERNAME]/[REPO-NAME]/master', // GitHub raw URL
-        'github_url' => 'https://github.com/[YOUR-USERNAME]/[REPO-NAME]', // GitHub repository URL
-        'zip_url' => 'https://github.com/[YOUR-USERNAME]/[REPO-NAME]/archive/master.zip', // ZIP download URL
+        'api_url' => 'https://api.github.com/repos/triias/kursorganizer-wp-plugin', // Updated URL
+        'raw_url' => 'https://raw.github.com/triias/kursorganizer-wp-plugin/master', // GitHub raw URL
+        'github_url' => 'https://github.com/triias/kursorganizer-wp-plugin', // GitHub repository URL
+        'zip_url' => 'https://github.com/triias/kursorganizer-wp-plugin/archive/master.zip', // ZIP download URL
         'sslverify' => true,
         'access_token' => $access_token,
     ));
