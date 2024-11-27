@@ -3,21 +3,12 @@ define('KURSORGANIZER_VERSION', '1.0.0');
 define('KURSORGANIZER_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('KURSORGANIZER_PLUGIN_URL', plugin_dir_url(__FILE__));
 
-// Initialisiere den Updater
-function init_kursorganizer_updater()
-{
-    require_once KURSORGANIZER_PLUGIN_DIR . 'includes/class-plugin-updater.php';
-    new KursOrganizer_Plugin_Updater(__FILE__);
-}
-add_action('init', 'init_kursorganizer_updater');
-
-// Add this at the top of your kursorganizer-wp-plugin.php file
-require_once plugin_dir_path(__FILE__) . 'includes/class-plugin-updater.php';
+// Remove duplicate initialization code
+require_once KURSORGANIZER_PLUGIN_DIR . 'includes/class-plugin-updater.php';
 
 // Initialize the updater
 function kursorganizer_init_updater()
 {
-    // Load the updater class
     if (!class_exists('KursOrganizer_Plugin_Updater')) {
         return;
     }
@@ -28,44 +19,17 @@ function kursorganizer_init_updater()
 
     // Configure the updater
     $updater = new KursOrganizer_Plugin_Updater(array(
-        'slug' => plugin_basename(__FILE__), // Plugin Slug
-        'proper_folder_name' => 'kursorganizer-wp-plugin', // Plugin folder name
-        'api_url' => 'https://api.github.com/repos/triias/kursorganizer-wp-plugin', // Updated URL
-        'raw_url' => 'https://raw.github.com/triias/kursorganizer-wp-plugin/master', // GitHub raw URL
-        'github_url' => 'https://github.com/triias/kursorganizer-wp-plugin', // GitHub repository URL
-        'zip_url' => 'https://github.com/triias/kursorganizer-wp-plugin/archive/master.zip', // ZIP download URL
+        'slug' => plugin_basename(__FILE__),
+        'proper_folder_name' => 'kursorganizer-wp-plugin',
+        'api_url' => 'https://api.github.com/repos/triias/kursorganizer-wp-plugin',
+        'raw_url' => 'https://raw.github.com/triias/kursorganizer-wp-plugin/master',
+        'github_url' => 'https://github.com/triias/kursorganizer-wp-plugin',
+        'zip_url' => 'https://github.com/triias/kursorganizer-wp-plugin/archive/master.zip',
         'sslverify' => true,
         'access_token' => $access_token,
     ));
 }
 add_action('init', 'kursorganizer_init_updater');
-
-// Add GitHub settings to your existing settings page
-function kursorganizer_add_github_settings()
-{
-    add_settings_field(
-        'github_token',
-        'GitHub Access Token',
-        'kursorganizer_github_token_callback',
-        'kursorganizer-settings',
-        'kursorganizer_main_section'
-    );
-}
-add_action('admin_init', 'kursorganizer_add_github_settings');
-
-// GitHub token field callback
-function kursorganizer_github_token_callback()
-{
-    $options = get_option('kursorganizer_settings');
-    $token = isset($options['github_token']) ? $options['github_token'] : '';
-?>
-    <input type='password' name='kursorganizer_settings[github_token]' value='<?php echo esc_attr($token); ?>'
-        class="regular-text">
-    <p class="description">
-        Enter your GitHub personal access token for private repository access
-    </p>
-<?php
-}
 
 // <?php
 /*
