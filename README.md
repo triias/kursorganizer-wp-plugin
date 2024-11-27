@@ -27,20 +27,21 @@ Beispiel:
 [seesternchen_iframe city="Berlin" coursetypeid="123" showfiltermenu="false"]
 
 ## Installation in WordPress:
-Download the latest release ZIP from this GitHub repository
+- Download the latest release ZIP from this GitHub repository
 
-In WordPress admin panel:
+### In WordPress admin panel:
 
-Go to Plugins → Add New → Upload Plugin
-Choose the downloaded ZIP file
-Click "Install Now" and then "Activate"
-Configure the plugin:
+- Go to Plugins → Add New → Upload Plugin
+- Choose the downloaded ZIP file
+- Click "Install Now" and then "Activate"
 
-Go to "KursOrganizer X" in the WordPress admin menu
-Enter your KursOrganizer Web-App URL
-Add your GitHub token for automatic updates (optional)
-Save settings
-Use the shortcode in your pages/posts:
+### Configure the plugin:
+
+- Go to "KursOrganizer X" in the WordPress admin menu
+- Enter your KursOrganizer Web-App URL
+- Add your GitHub token for automatic updates (optional)
+- Save settings
+- Use the shortcode in your pages/posts:
 
 ## Changelog
 = 1.0 =
