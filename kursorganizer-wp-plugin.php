@@ -3,7 +3,7 @@
 Plugin Name: KursOrganizer X iFrame
 Plugin URI: https://kursorganizer.com
 Description: Fügt einen Shortcode hinzu, um das WebModul des KO auf der Wordpressseite per shortcode integriert.
-Version: 1.0.0
+Version: 1.0.3
 Author: KursOrganizer GmbH
 Author URI: https://kursorganizer.com
 License: GPL2
@@ -159,11 +159,11 @@ function kursorganizer_url_field_callback()
     $options = get_option('kursorganizer_settings');
     $value = isset($options['main_app_url']) ? $options['main_app_url'] : '';
 ?>
-    <input type='url' name='kursorganizer_settings[main_app_url]' value='<?php echo esc_attr($value); ?>'
-        class="regular-text" placeholder="https://app.ihrefirma.kursorganizer.com/build/" required>
-    <p class="description">
-        Beispiel: https://app.ihrefirma.kursorganizer.com/build/
-    </p>
+<input type='url' name='kursorganizer_settings[main_app_url]' value='<?php echo esc_attr($value); ?>'
+    class="regular-text" placeholder="https://app.ihrefirma.kursorganizer.com/build/" required>
+<p class="description">
+    Beispiel: https://app.ihrefirma.kursorganizer.com/build/
+</p>
 <?php
 }
 
@@ -173,13 +173,13 @@ function kursorganizer_debug_mode_callback()
     $options = get_option('kursorganizer_settings');
     $debug_mode = isset($options['debug_mode']) ? $options['debug_mode'] : false;
 ?>
-    <label>
-        <input type='checkbox' name='kursorganizer_settings[debug_mode]' <?php checked($debug_mode, true); ?>>
-        Debug-Informationen anzeigen
-    </label>
-    <p class="description">
-        Zeigt technische Informationen unter dem iFrame an (nur für Entwicklung)
-    </p>
+<label>
+    <input type='checkbox' name='kursorganizer_settings[debug_mode]' <?php checked($debug_mode, true); ?>>
+    Debug-Informationen anzeigen
+</label>
+<p class="description">
+    Zeigt technische Informationen unter dem iFrame an (nur für Entwicklung)
+</p>
 <?php
 }
 
@@ -195,11 +195,11 @@ function kursorganizer_token_field_callback()
     $options = get_option('kursorganizer_settings');
     $token = isset($options['github_token']) ? $options['github_token'] : '';
 ?>
-    <input type='password' name='kursorganizer_settings[github_token]' value='<?php echo esc_attr($token); ?>'
-        class="regular-text">
-    <p class="description">
-        GitHub Personal Access Token für automatische Updates
-    </p>
+<input type='password' name='kursorganizer_settings[github_token]' value='<?php echo esc_attr($token); ?>'
+    class="regular-text">
+<p class="description">
+    GitHub Personal Access Token für automatische Updates
+</p>
 <?php
 }
 
@@ -236,9 +236,9 @@ function kursorganizer_settings_page()
         return;
     }
 ?>
-    <div class="wrap">
-        <h1><?php echo esc_html(get_admin_page_title()); ?></h1>
-        <?php
+<div class="wrap">
+    <h1><?php echo esc_html(get_admin_page_title()); ?></h1>
+    <?php
         if (isset($_GET['settings-updated'])) {
             add_settings_error(
                 'kursorganizer_messages',
@@ -250,74 +250,74 @@ function kursorganizer_settings_page()
         settings_errors('kursorganizer_messages');
         ?>
 
-        <!-- URL Configuration Form -->
-        <div class="card" style="max-width: 800px; margin-bottom: 20px;">
-            <form action="options.php" method="post">
-                <?php
+    <!-- URL Configuration Form -->
+    <div class="card" style="max-width: 800px; margin-bottom: 20px;">
+        <form action="options.php" method="post">
+            <?php
                 settings_fields('kursorganizer_settings');
                 do_settings_sections('kursorganizer-settings');
                 submit_button('Speichern');
                 ?>
-            </form>
-        </div>
-
-        <!-- Shortcode Examples -->
-        <div class="card" style="max-width: 800px;">
-            <h2>Shortcode Beispiele</h2>
-
-            <h3>Allgemeine Kurssuche</h3>
-            <p>Zeigt alle verfügbaren Kurse mit Filtermenü an:</p>
-            <code>[kursorganizer_iframe]</code>
-
-            <h3>Kurssuche nach Stadt</h3>
-            <p>Zeigt alle Kurse in einer bestimmten Stadt an:</p>
-            <code>[kursorganizer_iframe city="Berlin"]</code>
-
-            <h3>Bestimmter Kursleiter</h3>
-            <p>Zeigt alle Kurse eines bestimmten Kursleiters an:</p>
-            <code>[kursorganizer_iframe instructorid="trainer-id"]</code>
-
-            <h3>Bestimmter Kurstyp</h3>
-            <p>Zeigt einen spezifischen Kurstyp an:</p>
-            <code>[kursorganizer_iframe coursetypeid="kurstyp-id"]</code>
-
-            <h3>Mehrere Kurstypen</h3>
-            <p>Zeigt mehrere spezifische Kurstypen an (IDs kommagetrennt):</p>
-            <code>[kursorganizer_iframe coursetypeids="id1,id2,id3"]</code>
-
-            <h3>Standort-spezifische Kurse</h3>
-            <p>Zeigt Kurse an einem bestimmten Standort:</p>
-            <code>[kursorganizer_iframe locationid="standort-id"]</code>
-
-            <h3>Kurse an bestimmten Tagen</h3>
-            <p>Filtert Kurse nach bestimmten Tagen:</p>
-            <code>[kursorganizer_iframe dayfilter="1,2,3"]</code>
-            <p class="description">Tage: 1=Montag, 2=Dienstag, etc.</p>
-
-            <h3>Kurskategorie</h3>
-            <p>Zeigt Kurse einer bestimmten Kategorie:</p>
-            <code>[kursorganizer_iframe coursecategoryid="kategorie-id"]</code>
-
-            <h3>Ohne Filtermenü</h3>
-            <p>Zeigt Kurse ohne das Filtermenü an:</p>
-            <code>[kursorganizer_iframe showfiltermenu="false"]</code>
-
-            <h3>Komplexes Beispiel</h3>
-            <p>Kombination mehrerer Parameter:</p>
-            <code>[kursorganizer_iframe city="Berlin" coursetypeids="92f06d07-ca58-4575-892d-0c75d9afc5e5" showfiltermenu="false"]</code>
-            <p class="description">Zeigt spezifische Kurse (z.B. Pingu-Schwimmkurs) in Berlin ohne Filtermenü</p>
-
-            <hr>
-
-            <h3>Hinweise zur Verwendung</h3>
-            <ul>
-                <li>Alle Parameter sind optional</li>
-                <li>Parameter können beliebig kombiniert werden</li>
-                <li>IDs können Sie aus Ihrem KursOrganizer Backend entnehmen</li>
-                <li>Lassen Sie Parameter weg, wenn keine Einschränkung gewünscht ist</li>
-            </ul>
-        </div>
+        </form>
     </div>
+
+    <!-- Shortcode Examples -->
+    <div class="card" style="max-width: 800px;">
+        <h2>Shortcode Beispiele</h2>
+
+        <h3>Allgemeine Kurssuche</h3>
+        <p>Zeigt alle verfügbaren Kurse mit Filtermenü an:</p>
+        <code>[kursorganizer_iframe]</code>
+
+        <h3>Kurssuche nach Stadt</h3>
+        <p>Zeigt alle Kurse in einer bestimmten Stadt an:</p>
+        <code>[kursorganizer_iframe city="Berlin"]</code>
+
+        <h3>Bestimmter Kursleiter</h3>
+        <p>Zeigt alle Kurse eines bestimmten Kursleiters an:</p>
+        <code>[kursorganizer_iframe instructorid="trainer-id"]</code>
+
+        <h3>Bestimmter Kurstyp</h3>
+        <p>Zeigt einen spezifischen Kurstyp an:</p>
+        <code>[kursorganizer_iframe coursetypeid="kurstyp-id"]</code>
+
+        <h3>Mehrere Kurstypen</h3>
+        <p>Zeigt mehrere spezifische Kurstypen an (IDs kommagetrennt):</p>
+        <code>[kursorganizer_iframe coursetypeids="id1,id2,id3"]</code>
+
+        <h3>Standort-spezifische Kurse</h3>
+        <p>Zeigt Kurse an einem bestimmten Standort:</p>
+        <code>[kursorganizer_iframe locationid="standort-id"]</code>
+
+        <h3>Kurse an bestimmten Tagen</h3>
+        <p>Filtert Kurse nach bestimmten Tagen:</p>
+        <code>[kursorganizer_iframe dayfilter="1,2,3"]</code>
+        <p class="description">Tage: 1=Montag, 2=Dienstag, etc.</p>
+
+        <h3>Kurskategorie</h3>
+        <p>Zeigt Kurse einer bestimmten Kategorie:</p>
+        <code>[kursorganizer_iframe coursecategoryid="kategorie-id"]</code>
+
+        <h3>Ohne Filtermenü</h3>
+        <p>Zeigt Kurse ohne das Filtermenü an:</p>
+        <code>[kursorganizer_iframe showfiltermenu="false"]</code>
+
+        <h3>Komplexes Beispiel</h3>
+        <p>Kombination mehrerer Parameter:</p>
+        <code>[kursorganizer_iframe city="Berlin" coursetypeids="92f06d07-ca58-4575-892d-0c75d9afc5e5" showfiltermenu="false"]</code>
+        <p class="description">Zeigt spezifische Kurse (z.B. Pingu-Schwimmkurs) in Berlin ohne Filtermenü</p>
+
+        <hr>
+
+        <h3>Hinweise zur Verwendung</h3>
+        <ul>
+            <li>Alle Parameter sind optional</li>
+            <li>Parameter können beliebig kombiniert werden</li>
+            <li>IDs können Sie aus Ihrem KursOrganizer Backend entnehmen</li>
+            <li>Lassen Sie Parameter weg, wenn keine Einschränkung gewünscht ist</li>
+        </ul>
+    </div>
+</div>
 <?php
 }
 
