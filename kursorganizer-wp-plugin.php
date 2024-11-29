@@ -1,9 +1,27 @@
 <?php
-define('KURSORGANIZER_VERSION', '1.0.0');
+/*
+Plugin Name: KursOrganizer X iFrame
+Plugin URI: https://kursorganizer.com
+Description: Fügt einen Shortcode hinzu, um das WebModul des KO auf der Wordpressseite per shortcode integriert.
+Version: 1.0.0
+Author: KursOrganizer GmbH
+Author URI: https://kursorganizer.com
+License: GPL2
+License URI: https://www.gnu.org/licenses/gpl-2.0.html
+Text Domain: kursorganizer-wp-plugin
+Domain Path: /languages
+*/
+
+// Sicherheit: Direktzugriff verhindern
+if (!defined('ABSPATH')) {
+    exit;
+}
+
+define('KURSORGANIZER_VERSION', '1.0.3');
 define('KURSORGANIZER_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('KURSORGANIZER_PLUGIN_URL', plugin_dir_url(__FILE__));
 
-// Remove duplicate initialization code
+// Load updater class
 require_once KURSORGANIZER_PLUGIN_DIR . 'includes/class-plugin-updater.php';
 
 // Initialize the updater
@@ -30,25 +48,6 @@ function kursorganizer_init_updater()
     ));
 }
 add_action('init', 'kursorganizer_init_updater');
-
-// <?php
-/*
-Plugin Name: KursOrganizer X iFrame
-Plugin URI: https://kursorganizer.com
-Description: Fügt einen Shortcode hinzu, um das WebModul des KO auf der Wordpressseite per shortcode integriert.
-Version: 1.0
-Author: KursOrganizer GmbH
-Author URI: https://kursorganizer.com
-License: GPL2
-License URI: https://www.gnu.org/licenses/gpl-2.0.html
-Text Domain: kursorganizer-wp-plugin
-Domain Path: /languages
-*/
-
-// Sicherheit: Direktzugriff verhindern
-if (!defined('ABSPATH')) {
-    exit;
-}
 
 // Add settings link on plugin page
 function kursorganizer_plugin_action_links($links)
