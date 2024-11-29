@@ -36,8 +36,9 @@ function kursorganizer_init_updater()
     $access_token = isset($options['github_token']) ? $options['github_token'] : '';
 
     // Configure the updater
-    $updater = new KursOrganizer_Plugin_Updater(array(
-        'slug' => plugin_basename(__FILE__),
+    $plugin_file = __FILE__;
+    $updater = new KursOrganizer_Plugin_Updater([
+        'slug' => $plugin_file,
         'proper_folder_name' => 'kursorganizer-wp-plugin',
         'api_url' => 'https://api.github.com/repos/triias/kursorganizer-wp-plugin',
         'raw_url' => 'https://raw.github.com/triias/kursorganizer-wp-plugin/master',
@@ -45,9 +46,11 @@ function kursorganizer_init_updater()
         'zip_url' => 'https://github.com/triias/kursorganizer-wp-plugin/archive/master.zip',
         'sslverify' => true,
         'access_token' => $access_token,
-    ));
+    ]);
 }
-add_action('init', 'kursorganizer_init_updater');
+
+// Move this to run later when admin functions are available
+add_action('admin_init', 'kursorganizer_init_updater');
 
 // Add settings link on plugin page
 function kursorganizer_plugin_action_links($links)

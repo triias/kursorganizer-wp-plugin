@@ -1,9 +1,10 @@
 <?php
-// includes/class-plugin-updater.php
-
 if (!defined('ABSPATH')) {
     exit;
 }
+
+// Include admin functions for is_plugin_active()
+require_once(ABSPATH . 'wp-admin/includes/plugin.php');
 
 class KursOrganizer_Plugin_Updater
 {
@@ -14,22 +15,22 @@ class KursOrganizer_Plugin_Updater
     private $github_response;
     private $authorize_token;
     private $github_url;
+    private $config;
 
-    public function __construct($file)
+    public function __construct($config)
     {
-        $this->file = $file;
-        $this->plugin = plugin_basename($file);
-        $this->basename = plugin_basename($file, '.php');
+        $this->config = $config;
+        $this->file = $config['slug'];
+        $this->plugin = plugin_basename($this->file);
+        $this->basename = plugin_basename($this->file);
         $this->active = is_plugin_active($this->plugin);
-        $this->github_url = 'https://api.github.com/repos/[DEIN-USERNAME]/kursorganizer-iframe';
+        $this->github_url = $config['api_url'];
+        $this->authorize_token = $config['access_token'];
 
-        // Hook in die WordPress Update-Prozesse
+        // Hook into WordPress Update processes
         add_filter('pre_set_site_transient_update_plugins', array($this, 'modify_transient'), 10, 1);
         add_filter('plugins_api', array($this, 'plugin_popup'), 10, 3);
         add_filter('upgrader_post_install', array($this, 'after_install'), 10, 3);
-
-        // Setze GitHub Access Token
-        $this->authorize_token = get_option('kursorganizer_github_token');
     }
 
     public function modify_transient($transient)
