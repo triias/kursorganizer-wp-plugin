@@ -2,7 +2,7 @@
 Contributors: KursOrganizer GmbH
 Tags: iframe, courses, organization
 Requires at least: 5.0
-Tested up to: 6.4
+Tested up to: 8.0
 Stable tag: 1.0
 License: GPL2
 
@@ -12,7 +12,7 @@ Integration des KursOrganizer WebModuls in WordPress Seiten.
 Fügt einen Shortcode hinzu, um das WebModul des KursOrganizer auf der Wordpressseite zu integrieren.
 
 ## Shortcode Verwendung
-Der Shortcode [seesternchen_iframe] kann mit folgenden Parametern verwendet werden:
+Der Shortcode [kursorganizer_iframe] kann mit folgenden Parametern verwendet werden:
 
 * city - Stadt/Ort Filter
 * instructorid - Filtert nach einem bestimmten Kursleiter
@@ -24,7 +24,7 @@ Der Shortcode [seesternchen_iframe] kann mit folgenden Parametern verwendet werd
 * showfiltermenu - Zeigt/versteckt das Filtermenü (true/false, Standard: true)
 
 Beispiel:
-[seesternchen_iframe city="Berlin" coursetypeid="123" showfiltermenu="false"]
+[kursorganizer_iframe city="Berlin" coursetypeid="123" showfiltermenu="false"]
 
 ## Installation in WordPress:
 - Download the latest release ZIP from this GitHub repository

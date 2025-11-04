@@ -3,7 +3,7 @@
 Plugin Name: KursOrganizer X iFrame
 Plugin URI: https://kursorganizer.com
 Description: Fügt einen Shortcode hinzu, um das WebModul des KO auf der Wordpressseite per shortcode integriert.
-Version: 1.0.3
+Version: 1.0.4
 Author: KursOrganizer GmbH
 Author URI: https://kursorganizer.com
 License: GPL2
@@ -17,7 +17,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('KURSORGANIZER_VERSION', '1.0.3');
+define('KURSORGANIZER_VERSION', '1.0.4');
 define('KURSORGANIZER_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('KURSORGANIZER_PLUGIN_URL', plugin_dir_url(__FILE__));
 
@@ -366,11 +366,16 @@ function kursOrganizer_iframe_shortcode($atts)
     // Get debug mode setting
     $debug_mode = isset($options['debug_mode']) ? $options['debug_mode'] : false;
 
-    // HTML für das iFrame
-    $iframe_html = '<iframe id="kursorganizer_iframe" frameborder="0" style="width: 1px; min-width: 100%;" src="' . $iframe_src . '"></iframe>';
+    // Eindeutige ID für jeden iFrame generieren
+    static $iframe_counter = 0;
+    $iframe_counter++;
+    $unique_id = 'kursorganizer-iframe-' . $iframe_counter;
+
+    // HTML für das iFrame mit eindeutiger ID und gemeinsamer CSS-Klasse
+    $iframe_html = '<iframe id="' . $unique_id . '" class="kursorganizer-iframe" frameborder="0" style="width: 1px; min-width: 100%;" src="' . $iframe_src . '"></iframe>';
 
     // Optional: Platzhalter für Callback-Informationen (nur im Debug-Modus)
-    $callback_html = $debug_mode ? '<p id="kursorganizer_callback"></p>' : '';
+    $callback_html = $debug_mode ? '<p id="kursorganizer-callback-' . $iframe_counter . '"></p>' : '';
 
     return $iframe_html . $callback_html;
 }
@@ -408,7 +413,8 @@ function kursorganizer_enqueue_scripts()
                 enablePublicMethods: false,
                 onResized: function (messageData) {" .
         ($debug_mode ? "
-                    $('p#kursorganizer_callback').html(
+                    var callbackId = messageData.iframe.id.replace('iframe', 'callback');
+                    $('#' + callbackId).html(
                         '<b>Frame ID:</b> ' + messageData.iframe.id +
                         ' <b>Height:</b> ' + messageData.height +
                         ' <b>Width:</b> ' + messageData.width +
@@ -417,7 +423,8 @@ function kursorganizer_enqueue_scripts()
                 },
                 onMessage: function (messageData) {" .
         ($debug_mode ? "
-                    $('p#kursorganizer_callback').html(
+                    var callbackId = messageData.iframe.id.replace('iframe', 'callback');
+                    $('#' + callbackId).html(
                         '<b>Frame ID:</b> ' + messageData.iframe.id +
                         ' <b>Message:</b> ' + messageData.message
                     );" : "") . "
@@ -425,11 +432,12 @@ function kursorganizer_enqueue_scripts()
                 },
                 onClosed: function (id) {" .
         ($debug_mode ? "
-                    $('p#kursorganizer_callback').html(
+                    var callbackId = id.replace('iframe', 'callback');
+                    $('#' + callbackId).html(
                         '<b>IFrame (</b>' + id + '<b>) removed from page.</b>'
                     );" : "") . "
                 },
-            }, '#kursorganizer_iframe');
+            }, '.kursorganizer-iframe');
         });
     ";
 

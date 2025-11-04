@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.0.4] - 2025-11-04
+### Fixed
+- Mehrfache Verwendung des Shortcodes auf einer Seite funktioniert jetzt korrekt
+- iFrame-Resizing funktioniert nun für alle iFrames, nicht nur für den ersten
+- Eindeutige IDs für jeden iFrame zur Vermeidung von HTML-Validierungsfehlern
+
+### Changed
+- iFrameResizer verwendet jetzt CSS-Klassen statt IDs für bessere Mehrfachnutzung
+- Debug-Callbacks verwenden nun eindeutige IDs pro iFrame-Instanz
+
 ## [1.0.0] - 2024-11-27
 ### Added
 - Initial release of the KursOrganizer X iFrame plugin.
