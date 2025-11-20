@@ -1,10 +1,22 @@
 /* COURSELIST DESKTOP ////////////////////////////////////////////////////////////////////////////// */
 :root {
-    --first-color: #155263;
+    /* --first-color: #155263;
     --second-color: #ff6f3c;
     --third-color: #ff9a3c;
     --fourth-color: #ffc93c;
-    --fifth-color: #efff3c;
+    --fifth-color: #efff3c; */
+
+    /* --first-color: #adf7d1;
+    --second-color: #95e8d7;
+    --third-color: #7dace4;
+    --fourth-color: #8971d0;
+    --fifth-color: #5d32df; */
+
+    --first-color: #7effdb;
+    --second-color: #b693fe;
+    --third-color: #8c82fc;
+    --fourth-color: #ff85da;
+    --fifth-color: #c52595;
 
     --primary-font-family: Courier, monospace;
     --secondary-font-family: Arial, sans-serif;
@@ -140,7 +152,6 @@ form {
 
 
 .ant-select-dropdown {
-    border: 2px solid orange !important;
     background-color: var(--fourth-color) !important;
 }
 
@@ -153,6 +164,26 @@ table {
         background-color: var(--third-color) !important;
         color: var(--first-color) !important;
         border-bottom: 1px solid var(--second-color) !important;
+        
+
+        .ant-space-item{
+            div{
+                div{
+                    color: var(--first-color) !important;
+                }
+            }
+        }
+
+        div{
+            span{
+                color: var(--fifth-color) !important;
+            }
+        }
+
+        #bookCourseButton{
+            span{
+            color: var(--first-color) !important;
+        }
     }
 
     button {
