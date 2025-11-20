@@ -31,8 +31,8 @@ body {
     }
 
     #content {
-        width: 100% !important;
-        max-width: 100% !important;
+        width: var(--max-width) !important;
+        max-width: var(--max-width) !important;
         background-color: var(--third-color) !important;
         border: none !important;
     }
