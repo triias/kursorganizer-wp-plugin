@@ -8,6 +8,8 @@
 
     --primary-font-family: Courier, monospace;
     --secondary-font-family: Arial, sans-serif;
+    --max-width: 1200px;
+    /* --max-width: 100%; */
 }
 
 body {
@@ -36,8 +38,8 @@ body {
     }
 
     #authHeader {
-        width: 100% !important;
-        max-width: 100% !important;
+        width: var(--max-width) !important;
+        max-width: var(--max-width) !important;
         background-color: var(--third-color) !important;
         border-bottom: 1px solid var(--first-color) !important;
     }
