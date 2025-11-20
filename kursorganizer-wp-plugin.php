@@ -408,7 +408,8 @@ function kursorganizer_settings_page()
 * {
     font-family: 'Arial', 'Helvetica Neue', sans-serif !important;
 }</code></pre>
-            <p class="description">Verwenden Sie <code>!important</code>, um sicherzustellen, dass die Schriftart auch auf alle Ant Design Komponenten angewendet wird.</p>
+            <p class="description">Verwenden Sie <code>!important</code>, um sicherzustellen, dass die Schriftart auch auf
+                alle Ant Design Komponenten angewendet wird.</p>
 
             <h4>Button-Farben ändern:</h4>
             <pre><code>.ant-btn-primary {
@@ -434,8 +435,11 @@ function kursorganizer_settings_page()
 
             <h3>Wichtige Hinweise</h3>
             <ul>
-                <li><strong>CSS-Spezifität:</strong> Verwenden Sie ausreichend spezifische Selektoren (z.B. <code>.ant-btn-primary</code> statt nur <code>button</code>)</li>
-                <li><strong>Ant Design:</strong> Die App verwendet Ant Design. Sie können alle Ant Design Komponenten-Klassen stylen</li>
+                <li><strong>CSS-Spezifität:</strong> Verwenden Sie ausreichend spezifische Selektoren (z.B.
+                    <code>.ant-btn-primary</code> statt nur <code>button</code>)
+                </li>
+                <li><strong>Ant Design:</strong> Die App verwendet Ant Design. Sie können alle Ant Design
+                    Komponenten-Klassen stylen</li>
                 <li><strong>Externe CSS-Dateien:</strong> Müssen öffentlich zugänglich sein und CORS-Header erlauben</li>
             </ul>
         </div>
