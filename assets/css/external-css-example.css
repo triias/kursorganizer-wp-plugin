@@ -54,6 +54,7 @@ body {
 
         div {
             color: var(--first-color) !important;
+            opacity: 0.8 !important;
         }
     }
 
