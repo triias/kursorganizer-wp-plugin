@@ -28,27 +28,11 @@ Beispiel:
 
 ## CSS-Anpassungen
 
-Das Plugin unterstützt benutzerdefinierte CSS-Anpassungen für den Inhalt des iFrames. Sie können CSS auf zwei Arten hinzufügen:
+Das Plugin unterstützt benutzerdefinierte CSS-Anpassungen für den Inhalt des iFrames über externe CSS-Dateien.
 
-### 1. Direktes CSS-Eingeben
+### Externe CSS-Datei
 
-Geben Sie CSS-Code direkt in das Textfeld "Benutzerdefiniertes CSS" in den Plugin-Einstellungen ein. Das CSS wird automatisch base64-kodiert und als URL-Parameter an die App übergeben.
-
-**Beispiel CSS:**
-
-```css
-.ant-btn-primary {
-    background-color: #ff0000;
-    border-color: #ff0000;
-}
-.ant-card {
-    border-radius: 10px;
-}
-```
-
-### 2. Externe CSS-Datei
-
-Geben Sie die vollständige URL zu einer externen CSS-Datei im Feld "CSS-Datei URL" ein. Die CSS-Datei muss öffentlich zugänglich sein und CORS-Header erlauben.
+Geben Sie die vollständige URL zu einer externen CSS-Datei im Feld "CSS-Datei URL" in den Plugin-Einstellungen ein. Die CSS-Datei muss öffentlich zugänglich sein und CORS-Header erlauben.
 
 **Beispiel URL:**
 
@@ -58,10 +42,9 @@ https://www.fitimwasser.de/wp-content/themes/theme-name/custom-kursorganizer.css
 
 ### Wichtige Hinweise
 
-* **Priorität:** Wenn sowohl CSS-URL als auch CSS-Text angegeben sind, hat die CSS-URL Priorität
 * **CSS-Spezifität:** Verwenden Sie ausreichend spezifische Selektoren, um die Standard-Styles zu überschreiben
 * **Ant Design Klassen:** Die App verwendet Ant Design. Sie können Ant Design Komponenten-Klassen direkt stylen (z.B. `.ant-btn-primary`, `.ant-card`, `.ant-table`)
-* **Sicherheit:** Das CSS wird sanitized, um XSS-Angriffe zu verhindern
+* **Externe CSS-Dateien:** Müssen öffentlich zugänglich sein und CORS-Header erlauben
 * **Performance:** Große CSS-Dateien können die Ladezeit beeinträchtigen
 
 ### CSS-Beispiele

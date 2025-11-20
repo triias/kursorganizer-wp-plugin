@@ -131,13 +131,6 @@ function kursorganizer_settings_init()
         'kursorganizer-settings'
     );
     add_settings_field(
-        'custom_css_text',
-        'Benutzerdefiniertes CSS',
-        'kursorganizer_css_text_field_callback',
-        'kursorganizer-settings',
-        'kursorganizer_css_section'
-    );
-    add_settings_field(
         'custom_css_url',
         'CSS-Datei URL',
         'kursorganizer_css_url_field_callback',
@@ -165,13 +158,6 @@ function kursorganizer_sanitize_settings($input)
         $new_input['github_token'] = isset($options['github_token']) ? $options['github_token'] : '';
     }
 
-    // Sanitize CSS text
-    if (isset($input['custom_css_text'])) {
-        $new_input['custom_css_text'] = kursorganizer_sanitize_css($input['custom_css_text']);
-    } else {
-        $options = get_option('kursorganizer_settings');
-        $new_input['custom_css_text'] = isset($options['custom_css_text']) ? $options['custom_css_text'] : '';
-    }
     // Validate and save CSS URL
     if (isset($input['custom_css_url'])) {
         $new_input['custom_css_url'] = kursorganizer_validate_css_url($input['custom_css_url']);
@@ -268,22 +254,7 @@ function kursorganizer_validate_token($token)
 // CSS section callback
 function kursorganizer_css_section_callback()
 {
-    echo '<p>Passen Sie das Aussehen des KursOrganizer iFrames an. Sie können entweder direkt CSS eingeben oder eine externe CSS-Datei verwenden.</p>';
-}
-
-// CSS text field callback
-function kursorganizer_css_text_field_callback()
-{
-    $options = get_option('kursorganizer_settings');
-    $value = isset($options['custom_css_text']) ? $options['custom_css_text'] : '';
-?>
-    <textarea name='kursorganizer_settings[custom_css_text]' rows='10' cols='50' class='large-text code'><?php echo esc_textarea($value); ?></textarea>
-    <p class="description">
-        Geben Sie hier direkt CSS-Code ein, der auf den Inhalt des iFrames angewendet wird.<br>
-        Beispiel: <code>.ant-btn-primary { background-color: #ff0000; }</code><br>
-        <strong>Hinweis:</strong> Das CSS wird base64-kodiert als URL-Parameter übergeben.
-    </p>
-<?php
+    echo '<p>Passen Sie das Aussehen des KursOrganizer iFrames an. Geben Sie die URL zu einer externen CSS-Datei ein.</p>';
 }
 
 // CSS URL field callback
@@ -300,20 +271,6 @@ function kursorganizer_css_url_field_callback()
         <strong>Hinweis:</strong> Die CSS-Datei muss öffentlich zugänglich sein und CORS-Header erlauben.
     </p>
 <?php
-}
-
-// Sanitize CSS input
-function kursorganizer_sanitize_css($css)
-{
-    // Remove potentially dangerous content
-    $css = wp_strip_all_tags($css);
-
-    // Allow CSS but remove script tags and javascript: protocols
-    $css = preg_replace('/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi', '', $css);
-    $css = preg_replace('/javascript:/i', '', $css);
-    $css = preg_replace('/on\w+\s*=/i', '', $css);
-
-    return $css;
 }
 
 // Validate CSS URL
@@ -477,7 +434,6 @@ function kursorganizer_settings_page()
 
             <h3>Wichtige Hinweise</h3>
             <ul>
-                <li><strong>CSS-URL hat Priorität:</strong> Wenn sowohl CSS-URL als auch CSS-Text angegeben sind, wird die CSS-URL verwendet</li>
                 <li><strong>CSS-Spezifität:</strong> Verwenden Sie ausreichend spezifische Selektoren (z.B. <code>.ant-btn-primary</code> statt nur <code>button</code>)</li>
                 <li><strong>Ant Design:</strong> Die App verwendet Ant Design. Sie können alle Ant Design Komponenten-Klassen stylen</li>
                 <li><strong>Externe CSS-Dateien:</strong> Müssen öffentlich zugänglich sein und CORS-Header erlauben</li>
@@ -517,7 +473,6 @@ function kursOrganizer_iframe_shortcode($atts)
 
     // CSS-Parameter aus Settings lesen
     $custom_css_url = isset($options['custom_css_url']) ? trim($options['custom_css_url']) : '';
-    $custom_css_text = isset($options['custom_css_text']) ? trim($options['custom_css_text']) : '';
 
     // Aktuelle URL der Elternseite
     $parentUrl = urlencode(get_permalink());
@@ -533,12 +488,9 @@ function kursOrganizer_iframe_shortcode($atts)
         "&courseCategoryId=" . urlencode($atts['coursecategoryid']) .
         "&showFilterMenu=" . urlencode($atts['showfiltermenu']);
 
-    // CSS-Parameter hinzufügen (URL hat Priorität über Text)
+    // CSS-Parameter hinzufügen
     if (!empty($custom_css_url)) {
         $iframe_src .= "&customCssUrl=" . urlencode($custom_css_url);
-    } elseif (!empty($custom_css_text)) {
-        // Base64-kodieren für URL-Parameter
-        $iframe_src .= "&customCss=" . urlencode(base64_encode($custom_css_text));
     }
 
     // Get debug mode setting
