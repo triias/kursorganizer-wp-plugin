@@ -395,52 +395,36 @@ function kursorganizer_settings_page()
         <!-- CSS-Anpassungen Info -->
         <div class="card" style="max-width: 800px; margin-top: 20px;">
             <h2>CSS-Anpassungen</h2>
-            <p>Sie können das Aussehen des KursOrganizer iFrames über die Einstellungen anpassen.</p>
+            <p>Sie können das Aussehen des KursOrganizer iFrames über eine externe CSS-Datei anpassen.</p>
 
-            <h3>CSS-Beispiele</h3>
+            <h3>So binden Sie eine CSS-Datei ein</h3>
+            <ol>
+                <li><strong>CSS-Datei erstellen:</strong> Erstellen Sie eine CSS-Datei mit Ihren Anpassungen und laden Sie
+                    diese auf Ihren Server hoch.</li>
+                <li><strong>Öffentliche URL verwenden:</strong> Stellen Sie sicher, dass die CSS-Datei über eine öffentliche
+                    URL erreichbar ist.</li>
+                <li><strong>URL in Einstellungen eintragen:</strong> Geben Sie die vollständige URL zu Ihrer CSS-Datei im
+                    Feld "CSS-Datei URL" oben in den Einstellungen ein.</li>
+                <li><strong>Speichern:</strong> Klicken Sie auf "Speichern", damit die Änderungen wirksam werden.</li>
+            </ol>
 
-            <h4>Schriftarten anpassen:</h4>
-            <pre><code>body {
-    font-family: 'Arial', 'Helvetica Neue', sans-serif !important;
-    font-size: 16px;
-}
-/* Alle Elemente mit Schriftart versehen */
-* {
-    font-family: 'Arial', 'Helvetica Neue', sans-serif !important;
-}</code></pre>
-            <p class="description">Verwenden Sie <code>!important</code>, um sicherzustellen, dass die Schriftart auch auf
-                alle Ant Design Komponenten angewendet wird.</p>
-
-            <h4>Button-Farben ändern:</h4>
-            <pre><code>.ant-btn-primary {
-    background-color: #ff0000;
-    border-color: #ff0000;
-}</code></pre>
-
-            <h4>Karten-Styling:</h4>
-            <pre><code>.ant-card {
-    border-radius: 10px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}</code></pre>
-
-            <h4>Tabelle anpassen:</h4>
-            <pre><code>.ant-table {
-    font-size: 14px;
-}
-.ant-table-thead > tr > th {
-    background-color: #f0f0f0;
-}</code></pre>
+            <h3>Beispiel-URL</h3>
+            <p>Die URL sollte folgendem Format entsprechen:</p>
+            <code>https://www.ihre-domain.de/wp-content/themes/theme-name/custom-kursorganizer.css</code>
 
             <hr>
 
             <h3>Wichtige Hinweise</h3>
             <ul>
-                <li><strong>CSS-Spezifität:</strong> Verwenden Sie ausreichend spezifische Selektoren (z.B.
-                    <code>.ant-btn-primary</code> statt nur <code>button</code>)
-                </li>
-                <li><strong>Ant Design:</strong> Die App verwendet Ant Design. Sie können alle Ant Design
-                    Komponenten-Klassen stylen</li>
-                <li><strong>Externe CSS-Dateien:</strong> Müssen öffentlich zugänglich sein und CORS-Header erlauben</li>
+                <li><strong>Öffentliche Zugänglichkeit:</strong> Die CSS-Datei muss öffentlich über HTTP/HTTPS erreichbar
+                    sein</li>
+                <li><strong>CORS-Header:</strong> Die CSS-Datei muss CORS-Header erlauben, damit sie vom iFrame geladen
+                    werden kann</li>
+                <li><strong>Ant Design:</strong> Die App verwendet Ant Design. Sie können Ant Design Komponenten-Klassen
+                    direkt stylen (z.B. <code>.ant-btn-primary</code>, <code>.ant-card</code>, <code>.ant-table</code>)</li>
+                <li><strong>CSS-Spezifität:</strong> Verwenden Sie ausreichend spezifische Selektoren, um die
+                    Standard-Styles zu überschreiben</li>
+                <li><strong>Performance:</strong> Große CSS-Dateien können die Ladezeit beeinträchtigen</li>
             </ul>
         </div>
     </div>
