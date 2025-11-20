@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.0.5] - 2025-01-XX
+### Added
+- CSS-Anpassungen über externe CSS-Datei-URL hinzugefügt
+- Neue Settings-Section "CSS-Anpassungen" für die Konfiguration externer CSS-Dateien
+- Validierung und Sanitization für CSS-URLs
+
+### Changed
+- CSS-Anpassungen erfolgen ausschließlich über externe CSS-Datei-URLs
+- Vereinfachte CSS-Konfiguration: Direktes CSS-Eingeben wurde entfernt
+
+### Removed
+- Direktes CSS-Eingabefeld aus den Einstellungen entfernt
+- Base64-Kodierung für CSS-Text entfernt (nur noch URL-basierte CSS-Dateien)
+
 ## [1.0.4] - 2025-11-04
 ### Fixed
 - Mehrfache Verwendung des Shortcodes auf einer Seite funktioniert jetzt korrekt
