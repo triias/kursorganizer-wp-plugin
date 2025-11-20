@@ -1,0 +1,316 @@
+/* COURSELIST DESKTOP ////////////////////////////////////////////////////////////////////////////// */
+:root {
+    --first-color: #155263;
+    --second-color: #ff6f3c;
+    --third-color: #ff9a3c;
+    --fourth-color: #ffc93c;
+    --fifth-color: #efff3c;
+
+    --primary-font-family: Courier, monospace;
+    --secondary-font-family: Arial, sans-serif;
+}
+
+body {
+    /* font-family: Courier, monospace !important;*/
+    font-family: var(--primary-font-family) !important;
+    background-color: var(--third-color) !important;
+
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+        color: var(--first-color) !important;
+    }
+
+    #ko-logo {
+        filter: brightness(0) saturate(100%) invert(23%) sepia(100%) saturate(1464%) hue-rotate(167deg) brightness(91%) contrast(102%);
+    }
+
+    #content {
+        width: 100% !important;
+        max-width: 100% !important;
+        background-color: var(--third-color) !important;
+        border: none !important;
+    }
+
+    #authHeader {
+        width: 100% !important;
+        max-width: 100% !important;
+        background-color: var(--third-color) !important;
+        border-bottom: 1px solid var(--first-color) !important;
+    }
+
+    #courseTableContainer {
+        background-color: var(--third-color) !important;
+    }
+
+    #footer {
+        background-color: var(--third-color) !important;
+
+        div {
+            color: var(--first-color) !important;
+        }
+    }
+
+    a {
+        button {
+            color: var(--first-color) !important;
+        }
+    }
+}
+
+
+
+button {
+    border-radius: 20px !important;
+    font-weight: 600 !important;
+}
+
+.ant-btn-primary {
+    background-color: var(--fifth-color) !important;
+    border-color: var(--fifth-color) !important;
+    border-radius: 15px !important;
+    color: var(--first-color) !important;
+
+    span {
+        font-weight: 600 !important;
+    }
+}
+
+.ant-btn-default {
+    background-color: var(--fourth-color) !important;
+    border-color: var(--fourth-color) !important;
+}
+
+form {
+    border: 1px solid var(--second-color) !important;
+    background-color: var(--third-color) !important;
+
+    div {
+        color: var(--first-color) !important;
+    }
+
+    .ant-select-selector {
+        border-color: var(--second-color) !important;
+        background-color: var(--fourth-color) !important;
+    }
+
+    .ant-form-item {
+        input {
+            background-color: var(--fourth-color) !important;
+        }
+    }
+
+    label {
+        color: var(--first-color) !important;
+    }
+
+    .ant-form-item-control-input-content {
+        color: var(--first-color) !important;
+
+        input {
+            color: var(--first-color) !important;
+        }
+    }
+
+    ::placeholder {
+        color: var(--second-color) !important;
+    }
+
+    button {
+        color: var(--first-color) !important;
+    }
+}
+
+
+
+.ant-select-dropdown {
+    border: 2px solid orange !important;
+    background-color: var(--fourth-color) !important;
+}
+
+
+table {
+    background-color: var(--third-color) !important;
+    font-size: 1.1em !important;
+
+    .ant-table-cell {
+        background-color: var(--third-color) !important;
+        color: var(--first-color) !important;
+        border-bottom: 1px solid var(--second-color) !important;
+    }
+
+    button {
+        color: var(--first-color) !important;
+        border-color: var(--fourth-color) !important;
+        background-color: var(--fourth-color) !important;
+        font-weight: bold !important;
+    }
+
+    .ant-table-thead {
+        .ant-table-cell {
+            background-color: var(--fourth-color) !important;
+            font-weight: bold !important;
+            font-size: 12px !important;
+            border-bottom: 1px solid var(--first-color) !important;
+            font-size: 1.1em !important;
+        }
+
+        .ant-table-cell:first-child {
+            background-color: var(--fourth-color) !important;
+            border-right: 1px solid var(--first-color) !important;
+
+        }
+    }
+
+    tbody {
+        tr {
+            td:first-child {
+                white-space: nowrap !important;
+                background-color: var(--fourth-color) !important;
+                border-right: 1px solid var(--first-color) !important;
+            }
+        }
+    }
+}
+
+.ant-table-footer {
+    background-color: var(--third-color) !important;
+}
+
+.ant-pagination-item,
+.ant-pagination-item-link,
+.ant-pagination-item-active {
+    background: none !important;
+    border-color: var(--second-color) !important;
+}
+
+.ant-pagination-item-active {
+    background-color: var(--fourth-color) !important;
+}
+
+/* COURSELIST MOBILE (CARDS) ////////////////////////////////////////////////////////////////////////////// */
+.ant-card-body {
+    background-color: var(--third-color) !important;
+}
+
+.ant-descriptions {
+    border-color: var(--second-color) !important;
+}
+
+.ant-descriptions-view {
+    border-color: var(--second-color) !important;
+}
+
+.ant-descriptions-row {
+    border-color: var(--second-color) !important;
+}
+
+.ant-descriptions-item-label {
+    background-color: var(--fourth-color) !important;
+    border-color: var(--second-color) !important;
+}
+
+.ant-descriptions-item-content {
+    border-color: var(--second-color) !important;
+}
+
+/* COURSEDETAILS ////////////////////////////////////////////////////////////////////////////// */
+.ant-card-body {
+
+
+    #PanelCard div {
+        border-color: var(--second-color) !important;
+        background-color: var(--fourth-color) !important;
+    }
+
+    h3 {
+        background-color: var(--fourth-color) !important;
+        border-bottom: 1px solid var(--second-color) !important;
+    }
+
+    #PanelCard .title {
+        div {
+            background-color: var(--fourth-color) !important;
+        }
+    }
+
+    #PanelCard {
+        border-color: var(--second-color) !important;
+        background-color: var(--fourth-color) !important;
+    }
+
+    #PanelCard {
+        div:first-child {
+            border-radius: 3px !important;
+            overflow: hidden !important;
+        }
+    }
+
+    .ant-descriptions-item {
+        background-color: var(--fourth-color) !important;
+    }
+
+    .ant-descriptions-item-content {
+        background-color: var(--fourth-color) !important;
+    }
+}
+
+.ant-card-actions {
+    border-top: 1px solid var(--second-color) !important;
+    background-color: var(--third-color) !important;
+}
+
+
+/* BOOKINGSUMMARY ////////////////////////////////////////////////////////////////////////////// */
+.booking-summary {
+    border: 3px solid var(--second-color) !important;
+}
+
+div[data-testid="booking-summary"] {
+    border-color: var(--second-color) !important;
+    background-color: var(--fourth-color) !important;
+
+    .ant-card-body {
+        border-color: var(--second-color) !important;
+    }
+
+    .ant-row {
+        .ant-col:nth-child(1) {
+            background-color: var(--third-color) !important;
+        }
+
+        .ant-col:nth-child(2) {
+            background-color: var(--fourth-color) !important;
+        }
+    }
+
+    .ant-table-wrapper {
+        border: none !important;
+    }
+
+    #booking-price-preview {
+        border: 1px solid var(--third-color) !important;
+        padding: 0 5px !important;
+
+        #member-discount {
+
+            background: none !important;
+
+            div {
+                background: none !important;
+            }
+        }
+    }
+}
+
+#sepa-data {
+    border: 1px solid var(--second-color) !important;
+    background-color: var(--fourth-color) !important;
+
+    div {
+        background: none !important;
+    }
+}

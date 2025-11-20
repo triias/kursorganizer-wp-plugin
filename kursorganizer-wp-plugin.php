@@ -131,6 +131,13 @@ function kursorganizer_settings_init()
         'kursorganizer-settings'
     );
     add_settings_field(
+        'use_example_css',
+        'Beispiel-CSS aktivieren',
+        'kursorganizer_example_css_field_callback',
+        'kursorganizer-settings',
+        'kursorganizer_css_section'
+    );
+    add_settings_field(
         'custom_css_url',
         'CSS-Datei URL',
         'kursorganizer_css_url_field_callback',
@@ -148,6 +155,7 @@ function kursorganizer_sanitize_settings($input)
         $new_input['main_app_url'] = esc_url_raw(trailingslashit($input['main_app_url']));
     }
     $new_input['debug_mode'] = isset($input['debug_mode']);
+    $new_input['use_example_css'] = isset($input['use_example_css']);
 
     // Validate and save GitHub token
     if (isset($input['github_token'])) {
@@ -257,18 +265,40 @@ function kursorganizer_css_section_callback()
     echo '<p>Passen Sie das Aussehen des KursOrganizer iFrames an. Geben Sie die URL zu einer externen CSS-Datei ein.</p>';
 }
 
+// Example CSS field callback
+function kursorganizer_example_css_field_callback()
+{
+    $options = get_option('kursorganizer_settings');
+    $use_example_css = isset($options['use_example_css']) ? $options['use_example_css'] : false;
+    $example_css_url = KURSORGANIZER_PLUGIN_URL . 'assets/css/external-css-example.css';
+?>
+    <label>
+        <input type='checkbox' name='kursorganizer_settings[use_example_css]' <?php checked($use_example_css, true); ?>>
+        Beispiel-CSS-Datei für Testzwecke aktivieren
+    </label>
+    <p class="description">
+        Aktiviert die mitgelieferte Beispiel-CSS-Datei. Diese Option hat Priorität über die manuelle CSS-URL.<br>
+        <a href="<?php echo esc_url($example_css_url); ?>" download="external-css-example.css" target="_blank">Beispiel-CSS-Datei herunterladen</a>
+    </p>
+<?php
+}
+
 // CSS URL field callback
 function kursorganizer_css_url_field_callback()
 {
     $options = get_option('kursorganizer_settings');
     $value = isset($options['custom_css_url']) ? $options['custom_css_url'] : '';
+    $use_example_css = isset($options['use_example_css']) ? $options['use_example_css'] : false;
 ?>
     <input type='url' name='kursorganizer_settings[custom_css_url]' value='<?php echo esc_attr($value); ?>'
-        class="regular-text" placeholder="https://example.com/custom.css">
+        class="regular-text" placeholder="https://example.com/custom.css" <?php echo $use_example_css ? 'disabled' : ''; ?>>
     <p class="description">
         Geben Sie hier die vollständige URL zu einer externen CSS-Datei ein.<br>
         Beispiel: <code>https://www.fitimwasser.de/wp-content/themes/theme-name/custom-kursorganizer.css</code><br>
-        <strong>Hinweis:</strong> Die CSS-Datei muss öffentlich zugänglich sein und CORS-Header erlauben.
+        <strong>Hinweis:</strong> Die CSS-Datei muss öffentlich zugänglich sein und CORS-Header erlauben.<br>
+        <?php if ($use_example_css): ?>
+            <strong style="color: #d63638;">Diese Option ist deaktiviert, da die Beispiel-CSS aktiviert ist.</strong>
+        <?php endif; ?>
     </p>
 <?php
 }
@@ -399,11 +429,12 @@ function kursorganizer_settings_page()
 
             <h3>So binden Sie eine CSS-Datei ein</h3>
             <ol>
+                <li><strong>Beispiel-CSS testen:</strong> Aktivieren Sie die Option "Beispiel-CSS aktivieren" in den Einstellungen, um die mitgelieferte Beispiel-CSS-Datei zu testen. Sie können diese auch <a href="<?php echo esc_url(KURSORGANIZER_PLUGIN_URL . 'assets/css/external-css-example.css'); ?>" download="external-css-example.css">herunterladen</a> und als Vorlage verwenden.</li>
                 <li><strong>CSS-Datei erstellen:</strong> Erstellen Sie eine CSS-Datei mit Ihren Anpassungen und laden Sie
                     diese auf Ihren Server hoch.</li>
                 <li><strong>Öffentliche URL verwenden:</strong> Stellen Sie sicher, dass die CSS-Datei über eine öffentliche
                     URL erreichbar ist.</li>
-                <li><strong>URL in Einstellungen eintragen:</strong> Geben Sie die vollständige URL zu Ihrer CSS-Datei im
+                <li><strong>URL in Einstellungen eintragen:</strong> Deaktivieren Sie die Beispiel-CSS und geben Sie die vollständige URL zu Ihrer CSS-Datei im
                     Feld "CSS-Datei URL" oben in den Einstellungen ein.</li>
                 <li><strong>Speichern:</strong> Klicken Sie auf "Speichern", damit die Änderungen wirksam werden.</li>
             </ol>
@@ -460,6 +491,7 @@ function kursOrganizer_iframe_shortcode($atts)
     $mainAppUrl = isset($options['main_app_url']) ? $options['main_app_url'] : 'https://app.demo-schwimmschule.kursorganizer.com/build/';
 
     // CSS-Parameter aus Settings lesen
+    $use_example_css = isset($options['use_example_css']) ? $options['use_example_css'] : false;
     $custom_css_url = isset($options['custom_css_url']) ? trim($options['custom_css_url']) : '';
 
     // Aktuelle URL der Elternseite
@@ -476,8 +508,11 @@ function kursOrganizer_iframe_shortcode($atts)
         "&courseCategoryId=" . urlencode($atts['coursecategoryid']) .
         "&showFilterMenu=" . urlencode($atts['showfiltermenu']);
 
-    // CSS-Parameter hinzufügen
-    if (!empty($custom_css_url)) {
+    // CSS-Parameter hinzufügen (Beispiel-CSS hat Priorität)
+    if ($use_example_css) {
+        $example_css_url = KURSORGANIZER_PLUGIN_URL . 'assets/css/external-css-example.css';
+        $iframe_src .= "&customCssUrl=" . urlencode($example_css_url);
+    } elseif (!empty($custom_css_url)) {
         $iframe_src .= "&customCssUrl=" . urlencode($custom_css_url);
     }
 
