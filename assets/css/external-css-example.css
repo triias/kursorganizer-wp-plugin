@@ -8,14 +8,13 @@
 
     --primary-font-family: Courier, monospace;
     --secondary-font-family: Arial, sans-serif;
-    --max-width: 1200px;
-    /* --max-width: 100%; */
+    /* --max-width: 500px; */
+    --max-width: 100%;
 }
 
 body {
     /* font-family: Courier, monospace !important;*/
     font-family: var(--primary-font-family) !important;
-    background-color: var(--third-color) !important;
 
     h1,
     h2,
@@ -50,6 +49,8 @@ body {
 
     #footer {
         background-color: var(--third-color) !important;
+        max-width: var(--max-width) !important;
+        padding: 0 10px !important;
 
         div {
             color: var(--first-color) !important;
@@ -87,11 +88,20 @@ button {
 }
 
 form {
+    padding: 5px 0 !important;
     border: 1px solid var(--second-color) !important;
     background-color: var(--third-color) !important;
 
     div {
         color: var(--first-color) !important;
+    }
+
+    .ant-select {
+        border: none !important;
+    }
+
+    .ant-form-item-control-input-content {
+        border-color: var(--second-color) !important;
     }
 
     .ant-select-selector {
@@ -100,6 +110,7 @@ form {
     }
 
     .ant-form-item {
+        border: none !important;
         input {
             background-color: var(--fourth-color) !important;
         }
@@ -111,7 +122,6 @@ form {
 
     .ant-form-item-control-input-content {
         color: var(--first-color) !important;
-
         input {
             color: var(--first-color) !important;
         }
@@ -180,6 +190,16 @@ table {
 
 .ant-table-footer {
     background-color: var(--third-color) !important;
+    max-width: var(--max-width) !important;
+    
+    .ant-space {
+        max-width: var(--max-width) !important;
+    }
+}
+
+.ant-pagination {
+    max-width: var(--max-width) !important;
+    padding: 0 5px !important;
 }
 
 .ant-pagination-item,
