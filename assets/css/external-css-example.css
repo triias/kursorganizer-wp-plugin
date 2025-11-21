@@ -184,6 +184,7 @@ table {
             span{
             color: var(--first-color) !important;
         }
+        }
     }
 
     button {
