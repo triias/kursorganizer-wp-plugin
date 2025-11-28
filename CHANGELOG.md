@@ -1,6 +1,26 @@
 # Changelog
 
-## [1.0.5] - 2025-01-XX
+## [1.1.0] - 2025-11-27
+### Added
+- Changelog-Tab zur Einstellungsseite hinzugefügt
+- Versionsnummer wird nun im Header der Einstellungsseite angezeigt
+- Admin-CSS-Datei für anpassbare Breite der Einstellungsseite
+- Neuer Tab "Anleitungen" mit Shortcode-Beispielen und CSS-Anpassungsanleitung
+- Automatische Markdown-zu-HTML-Konvertierung für Changelog-Anzeige
+
+### Changed
+- Einstellungsseite umstrukturiert: Shortcode-Beispiele und CSS-Anpassungen in eigenen Tab verschoben
+- Einstellungen-Tab fokussiert sich jetzt nur noch auf die Plugin-Konfiguration
+- Maximale Breite der Einstellungsseite von 800px auf 1200px erhöht (anpassbar über CSS)
+- Verbesserte Navigation durch klarere Tab-Struktur
+
+### Fixed
+- N/A
+
+### Removed
+- N/A
+
+## [1.0.5] - 2025-11-18
 ### Added
 - CSS-Anpassungen über externe CSS-Datei-URL hinzugefügt
 - Neue Settings-Section "CSS-Anpassungen" für die Konfiguration externer CSS-Dateien
