@@ -1,5 +1,28 @@
 # Changelog
 
+## [1.2.0] - 2025-01-XX
+### Added
+- Organization ID Validierung zur Sicherstellung, dass nur die korrekte Schwimmschule eingebunden wird
+- Initial Setup Willkommensnachricht und Schritt-für-Schritt Anleitung beim ersten Öffnen des Plugins
+- Test Connection AJAX-basierter Button zum Testen der Verbindung zwischen URL und Organization ID ohne Speichern
+- URL-Automatisches Hinzufügen von `/build` bei kursorganizer.com Domains, falls es fehlt
+- "Initiales Setup" Abschnitt im Anleitungen-Tab mit detaillierter Schritt-für-Schritt Anleitung
+
+### Changed
+- Plugin-Funktionalität wird blockiert, bis URL und Organization ID korrekt konfiguriert und validiert sind
+- Verbesserte, benutzerfreundliche Fehlermeldungen statt technischer API-Fehlermeldungen
+- Fehlerhafte Felder werden rot markiert und automatisch wieder normal dargestellt bei Eingabe
+- URLs müssen auf `/build` enden (automatische Korrektur für kursorganizer.com Domains)
+- Felder werden erst nach erfolgreicher Konfiguration freigeschaltet
+
+### Fixed
+- Unendliche Rekursion bei der Validierung wurde behoben
+- Fehlermeldungen zeigen keine internen API-Details mehr an
+- URL-Feld wird korrekt als fehlerhaft markiert, wenn die URL ungültig ist
+
+### Removed
+- GitHub Access Token Feld temporär ausgeblendet (optional für öffentliche Repositories)
+
 ## [1.1.0] - 2025-11-27
 ### Added
 - Changelog-Tab zur Einstellungsseite hinzugefügt

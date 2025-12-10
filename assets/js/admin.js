@@ -183,4 +183,109 @@ jQuery(document).ready(function($) {
         $('#generated-shortcode').val('');
         $('#copy-success-message').hide();
     });
+
+    // Clear error styling when URL or Organization ID changes
+    $('input[name="kursorganizer_settings[main_app_url]"], #ko_organization_id').on('input change', function() {
+        var $field = $(this);
+        var resultSpan = $('#test-org-id-result');
+        
+        // Clear error styling
+        $field.removeClass('error').css({
+            'border-color': '',
+            'box-shadow': ''
+        });
+        
+        // Clear result message
+        resultSpan.html('');
+    });
+    
+    // Test Organization ID
+    $('#test-org-id-btn').on('click', function() {
+        var btn = $(this);
+        var resultSpan = $('#test-org-id-result');
+        var urlField = $('input[name="kursorganizer_settings[main_app_url]"]');
+        var orgIdField = $('#ko_organization_id');
+        
+        var url = urlField.val().trim();
+        var orgId = orgIdField.val().trim();
+        
+        if (!url || !orgId) {
+            resultSpan.html('<span style="color: #d63638;">Bitte geben Sie sowohl die URL als auch die Organization ID ein.</span>');
+            return;
+        }
+        
+        btn.prop('disabled', true).text('Wird getestet...');
+        resultSpan.html('<span style="color: #666;">Teste Verbindung...</span>');
+        
+        $.ajax({
+            url: kursorganizerAdmin.ajaxurl || ajaxurl,
+            type: 'POST',
+            data: {
+                action: 'kursorganizer_test_org_id',
+                nonce: kursorganizerAdmin.nonce,
+                url: url,
+                org_id: orgId
+            },
+            success: function(response) {
+                var urlField = $('input[name="kursorganizer_settings[main_app_url]"]');
+                
+                if (response.success) {
+                    resultSpan.html('<span style="color: #00a32a; font-weight: bold;">✓ ' + response.data + '</span>');
+                    // Remove error styling from both fields
+                    orgIdField.removeClass('error').css({
+                        'border-color': '',
+                        'box-shadow': ''
+                    });
+                    urlField.removeClass('error').css({
+                        'border-color': '',
+                        'box-shadow': ''
+                    });
+                    // Re-enable all form fields if they were disabled
+                    $('#kursorganizer-settings-form input, #kursorganizer-settings-form select, #kursorganizer-settings-form textarea').prop('disabled', false).css('opacity', '1');
+                    $('#kursorganizer-submit-btn').prop('disabled', false);
+                } else {
+                    var errorMessage = response.data || 'Unbekannter Fehler';
+                    resultSpan.html('<span style="color: #d63638; font-weight: bold;">✗ ' + errorMessage + '</span>');
+                    
+                    // Check if error is related to URL (no company found, invalid URL, etc.)
+                    var isUrlError = errorMessage.indexOf('URL') !== -1 || 
+                                     errorMessage.indexOf('Schwimmschule') !== -1 || 
+                                     errorMessage.indexOf('gefunden') !== -1 ||
+                                     errorMessage.indexOf('ungültig') !== -1;
+                    
+                    if (isUrlError) {
+                        // Mark URL field as error
+                        urlField.addClass('error').css({
+                            'border-color': '#d63638',
+                            'box-shadow': '0 0 0 1px #d63638'
+                        });
+                    } else {
+                        // Mark Organization ID field as error
+                        orgIdField.addClass('error').css({
+                            'border-color': '#d63638',
+                            'box-shadow': '0 0 0 1px #d63638'
+                        });
+                    }
+                    
+                    // Disable all form fields except URL and Organization ID
+                    $('#kursorganizer-settings-form input:not([name*="main_app_url"]):not([name*="ko_organization_id"]), #kursorganizer-settings-form select, #kursorganizer-settings-form textarea').prop('disabled', true).css('opacity', '0.6');
+                    $('#kursorganizer-submit-btn').prop('disabled', true);
+                }
+                btn.prop('disabled', false).text('Verbindung testen');
+            },
+            error: function(xhr, status, error) {
+                var errorMessage = 'Fehler beim Testen der Verbindung. Bitte überprüfen Sie die URL und Ihre Internetverbindung.';
+                resultSpan.html('<span style="color: #d63638; font-weight: bold;">✗ ' + errorMessage + '</span>');
+                
+                // Mark URL field as error
+                var urlField = $('input[name="kursorganizer_settings[main_app_url]"]');
+                urlField.addClass('error').css({
+                    'border-color': '#d63638',
+                    'box-shadow': '0 0 0 1px #d63638'
+                });
+                
+                btn.prop('disabled', false).text('Verbindung testen');
+            }
+        });
+    });
 });

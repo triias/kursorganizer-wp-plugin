@@ -43,17 +43,20 @@ class KursOrganizer_Plugin_Updater
         $this->get_repository_info();
 
         // Wenn eine neue Version verfügbar ist
-        if (
-            $this->github_response
-            && version_compare($this->github_response->tag_name, $transient->checked[$this->plugin], '>')
-        ) {
-            $plugin = array(
-                'url' => $this->plugin,
-                'slug' => $this->basename,
-                'package' => $this->github_response->zipball_url,
-                'new_version' => $this->github_response->tag_name
-            );
-            $transient->response[$this->plugin] = (object) $plugin;
+        if ($this->github_response) {
+            // Remove 'v' prefix from tag name if present (e.g., "v1.2.0" -> "1.2.0")
+            $github_version = ltrim($this->github_response->tag_name, 'v');
+            $current_version = $transient->checked[$this->plugin];
+            
+            if (version_compare($github_version, $current_version, '>')) {
+                $plugin = array(
+                    'url' => $this->plugin,
+                    'slug' => $this->basename,
+                    'package' => $this->github_response->zipball_url,
+                    'new_version' => $github_version
+                );
+                $transient->response[$this->plugin] = (object) $plugin;
+            }
         }
 
         return $transient;
@@ -69,12 +72,15 @@ class KursOrganizer_Plugin_Updater
             if ($args->slug == $this->basename) {
                 $this->get_repository_info();
 
+                // Remove 'v' prefix from tag name if present
+                $github_version = ltrim($this->github_response->tag_name, 'v');
+                
                 $plugin = array(
                     'name'              => $this->plugin,
                     'slug'              => $this->basename,
-                    'version'           => $this->github_response->tag_name,
+                    'version'           => $github_version,
                     'author'            => 'KursOrganizer GmbH',
-                    'author_profile'    => 'https://github.com/[DEIN-USERNAME]',
+                    'author_profile'    => 'https://github.com/triias',
                     'last_updated'      => $this->github_response->published_at,
                     'homepage'          => $this->github_response->html_url,
                     'short_description' => $this->github_response->description,
