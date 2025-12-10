@@ -70,13 +70,16 @@ add_filter('plugin_action_links_' . plugin_basename(__FILE__), 'kursorganizer_pl
 // Add admin menu
 function kursorganizer_add_admin_menu()
 {
+    // SVG icon as data URI (18px) - matches WordPress Dashicon style
+    $icon_svg = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgiIGhlaWdodD0iMTgiIHZpZXdCb3g9IjAgMCAyNSAyNSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICAgIDxnIGZpbGw9IiNhN2FhYWQiPgogICAgICAgIDxwYXRoIGQ9Ik0xOS45MjYsMjIuNTUzYy0yLjA3NiwxLjUzNyAtNC42NDYsMi40NDcgLTcuNDI2LDIuNDQ3Yy0zLjA0NywwIC01Ljg0LC0xLjA5MiAtOC4wMSwtMi45MDdsNy40ODgsLTcuNDg4bDcuOTQ4LDcuOTQ4Wm0yLjE2NywtMTguMDYzYzEuODE1LDIuMTcgMi45MDcsNC45NjMgMi45MDcsOC4wMWMtMCwzLjMxMyAtMS4yOTIsNi4zMjYgLTMuMzk4LDguNTY0bC04LjA0MSwtOC4wNDJsOC41MzIsLTguNTMyWm0tMTcuMzQsMTQuMTc0bC0xLjg0NiwxLjg0NmMtMS44MTUsLTIuMTcgLTIuOTA3LC00Ljk2MyAtMi45MDcsLTguMDFjLTAsLTMuOTc0IDEuODU4LC03LjUxNyA0Ljc1MywtOS44MDhsMCwxNS45NzJabTIuMjM4LC0xNy4zODZjMS42NjIsLTAuODE4IDMuNTMyLC0xLjI3OCA1LjUwOSwtMS4yNzhjMy4wNDcsLTAgNS44NCwxLjA5MiA4LjAxLDIuOTA3bC0xMy41MTksMTMuNTE5bDAsLTE1LjE0OFoiLz4KICAgIDwvZz4KPC9zdmc+Cg==';
+
     add_menu_page(
         'KursOrganizer X Settings',     // Page title
         'KursOrganizer X',              // Menu title
         'manage_options',               // Capability
         'kursorganizer-settings',       // Menu slug
         'kursorganizer_settings_page',  // Function
-        'dashicons-calendar-alt',       // Icon
+        $icon_svg,                      // Icon as data URI (18px)
         30                              // Position
     );
 }
@@ -319,15 +322,15 @@ function kursorganizer_url_field_callback()
         $field_style = 'border-color: #d63638; box-shadow: 0 0 0 1px #d63638;';
     }
 ?>
-<input type='url' name='kursorganizer_settings[main_app_url]' value='<?php echo esc_attr($value); ?>' id="main_app_url"
-    class="<?php echo esc_attr($field_class); ?>" style="<?php echo esc_attr($field_style); ?>"
-    placeholder="https://app.ihrefirma.kursorganizer.com/build/" required>
-<p class="description">
-    Geben Sie hier die vollständige URL Ihrer KursOrganizer Web-App ein. Die URL muss auf <code>/build</code> enden.<br>
-    Beispiel: <code>https://app.ihrefirma.kursorganizer.com/build/</code><br>
-    <strong>Hinweis:</strong> Bei kursorganizer.com Domains wird <code>/build</code> automatisch hinzugefügt, falls es
-    fehlt.
-</p>
+    <input type='url' name='kursorganizer_settings[main_app_url]' value='<?php echo esc_attr($value); ?>' id="main_app_url"
+        class="<?php echo esc_attr($field_class); ?>" style="<?php echo esc_attr($field_style); ?>"
+        placeholder="https://app.ihrefirma.kursorganizer.com/build/" required>
+    <p class="description">
+        Geben Sie hier die vollständige URL Ihrer KursOrganizer Web-App ein. Die URL muss auf <code>/build</code> enden.<br>
+        Beispiel: <code>https://app.ihrefirma.kursorganizer.com/build/</code><br>
+        <strong>Hinweis:</strong> Bei kursorganizer.com Domains wird <code>/build</code> automatisch hinzugefügt, falls es
+        fehlt.
+    </p>
 <?php
 }
 
@@ -365,33 +368,33 @@ function kursorganizer_org_id_field_callback()
         $field_style = 'border-color: #d63638; box-shadow: 0 0 0 1px #d63638;';
     }
 ?>
-<input type='text' name='kursorganizer_settings[ko_organization_id]' value='<?php echo esc_attr($value); ?>'
-    id="ko_organization_id" class="<?php echo esc_attr($field_class); ?>" style="<?php echo esc_attr($field_style); ?>"
-    placeholder="z.B. 123e4567-e89b-12d3-a456-426614174000">
-<button type="button" id="test-org-id-btn" class="button" style="margin-left: 10px;">
-    Verbindung testen
-</button>
-<span id="test-org-id-result" style="margin-left: 10px;"></span>
-<?php if (!empty($auto_fill_id)): ?>
-<button type="button" id="auto-fill-org-id" class="button" style="margin-left: 10px;">
-    Automatisch ausfüllen
-</button>
-<script>
-jQuery(document).ready(function($) {
-    $('#auto-fill-org-id').on('click', function() {
-        $('input[name="kursorganizer_settings[ko_organization_id]"]').val(
-            '<?php echo esc_js($auto_fill_id); ?>');
-    });
-});
-</script>
-<?php endif; ?>
-<p class="description">
-    Geben Sie hier die KursOrganizer Organization ID ein. Diese dient zur Sicherheitskontrolle und wird mit der
-    automatisch aus der URL ermittelten ID verglichen.<br>
-    <strong>Hinweis:</strong> Die ID wird beim Speichern automatisch validiert. Bei Nichtübereinstimmung wird eine
-    Warnung angezeigt.<br>
-    Verwenden Sie den Button "Verbindung testen", um die Übereinstimmung von URL und Organization ID zu überprüfen.
-</p>
+    <input type='text' name='kursorganizer_settings[ko_organization_id]' value='<?php echo esc_attr($value); ?>'
+        id="ko_organization_id" class="<?php echo esc_attr($field_class); ?>" style="<?php echo esc_attr($field_style); ?>"
+        placeholder="z.B. 123e4567-e89b-12d3-a456-426614174000">
+    <button type="button" id="test-org-id-btn" class="button" style="margin-left: 10px;">
+        Verbindung testen
+    </button>
+    <span id="test-org-id-result" style="margin-left: 10px;"></span>
+    <?php if (!empty($auto_fill_id)): ?>
+        <button type="button" id="auto-fill-org-id" class="button" style="margin-left: 10px;">
+            Automatisch ausfüllen
+        </button>
+        <script>
+            jQuery(document).ready(function($) {
+                $('#auto-fill-org-id').on('click', function() {
+                    $('input[name="kursorganizer_settings[ko_organization_id]"]').val(
+                        '<?php echo esc_js($auto_fill_id); ?>');
+                });
+            });
+        </script>
+    <?php endif; ?>
+    <p class="description">
+        Geben Sie hier die KursOrganizer Organization ID ein. Diese dient zur Sicherheitskontrolle und wird mit der
+        automatisch aus der URL ermittelten ID verglichen.<br>
+        <strong>Hinweis:</strong> Die ID wird beim Speichern automatisch validiert. Bei Nichtübereinstimmung wird eine
+        Warnung angezeigt.<br>
+        Verwenden Sie den Button "Verbindung testen", um die Übereinstimmung von URL und Organization ID zu überprüfen.
+    </p>
 <?php
 }
 
@@ -461,13 +464,13 @@ function kursorganizer_debug_mode_callback()
     $options = get_option('kursorganizer_settings');
     $debug_mode = isset($options['debug_mode']) ? $options['debug_mode'] : false;
 ?>
-<label>
-    <input type='checkbox' name='kursorganizer_settings[debug_mode]' <?php checked($debug_mode, true); ?>>
-    Debug-Informationen anzeigen
-</label>
-<p class="description">
-    Zeigt technische Informationen unter dem iFrame an (nur für Entwicklung)
-</p>
+    <label>
+        <input type='checkbox' name='kursorganizer_settings[debug_mode]' <?php checked($debug_mode, true); ?>>
+        Debug-Informationen anzeigen
+    </label>
+    <p class="description">
+        Zeigt technische Informationen unter dem iFrame an (nur für Entwicklung)
+    </p>
 <?php
 }
 
@@ -486,15 +489,15 @@ function kursorganizer_example_css_field_callback()
     // Verwende PHP-Endpoint für bessere CORS-Unterstützung (Chrome Private Network Access)
     $example_css_url = KURSORGANIZER_PLUGIN_URL . 'assets/css/external-css-example.php';
 ?>
-<label>
-    <input type='checkbox' name='kursorganizer_settings[use_example_css]' <?php checked($use_example_css, true); ?>>
-    Beispiel-CSS-Datei für Testzwecke aktivieren
-</label>
-<p class="description">
-    Aktiviert die mitgelieferte Beispiel-CSS-Datei. Diese Option hat Priorität über die manuelle CSS-URL.<br>
-    <a href="<?php echo esc_url($example_css_url); ?>" download="external-css-example.css"
-        target="_blank">Beispiel-CSS-Datei herunterladen</a>
-</p>
+    <label>
+        <input type='checkbox' name='kursorganizer_settings[use_example_css]' <?php checked($use_example_css, true); ?>>
+        Beispiel-CSS-Datei für Testzwecke aktivieren
+    </label>
+    <p class="description">
+        Aktiviert die mitgelieferte Beispiel-CSS-Datei. Diese Option hat Priorität über die manuelle CSS-URL.<br>
+        <a href="<?php echo esc_url($example_css_url); ?>" download="external-css-example.css"
+            target="_blank">Beispiel-CSS-Datei herunterladen</a>
+    </p>
 <?php
 }
 
@@ -506,16 +509,16 @@ function kursorganizer_css_url_field_callback()
     // Prüfe sowohl Boolean true als auch String "1" für Checkbox-Werte
     $use_example_css = isset($options['use_example_css']) && ($options['use_example_css'] === true || $options['use_example_css'] === '1' || $options['use_example_css'] === 1);
 ?>
-<input type='url' name='kursorganizer_settings[custom_css_url]' value='<?php echo esc_attr($value); ?>'
-    class="regular-text" placeholder="https://example.com/custom.css" <?php echo $use_example_css ? 'disabled' : ''; ?>>
-<p class="description">
-    Geben Sie hier die vollständige URL zu einer externen CSS-Datei ein.<br>
-    Beispiel: <code>https://www.fitimwasser.de/wp-content/themes/theme-name/custom-kursorganizer.css</code><br>
-    <strong>Hinweis:</strong> Die CSS-Datei muss öffentlich zugänglich sein und CORS-Header erlauben.<br>
-    <?php if ($use_example_css): ?>
-    <strong style="color: #d63638;">Diese Option ist deaktiviert, da die Beispiel-CSS aktiviert ist.</strong>
-    <?php endif; ?>
-</p>
+    <input type='url' name='kursorganizer_settings[custom_css_url]' value='<?php echo esc_attr($value); ?>'
+        class="regular-text" placeholder="https://example.com/custom.css" <?php echo $use_example_css ? 'disabled' : ''; ?>>
+    <p class="description">
+        Geben Sie hier die vollständige URL zu einer externen CSS-Datei ein.<br>
+        Beispiel: <code>https://www.fitimwasser.de/wp-content/themes/theme-name/custom-kursorganizer.css</code><br>
+        <strong>Hinweis:</strong> Die CSS-Datei muss öffentlich zugänglich sein und CORS-Header erlauben.<br>
+        <?php if ($use_example_css): ?>
+            <strong style="color: #d63638;">Diese Option ist deaktiviert, da die Beispiel-CSS aktiviert ist.</strong>
+        <?php endif; ?>
+    </p>
 <?php
 }
 
@@ -525,13 +528,13 @@ function kursorganizer_max_width_field_callback()
     $options = get_option('kursorganizer_settings');
     $value = isset($options['max_width']) ? $options['max_width'] : '1200px';
 ?>
-<input type='text' name='kursorganizer_settings[max_width]' value='<?php echo esc_attr($value); ?>' class="regular-text"
-    placeholder="1200px">
-<p class="description">
-    Steuert die maximale Breite des Inhalts (Parameter <code>maxWidth</code>).<br>
-    Standardwert: <code>1200px</code>. Lassen Sie das Feld leer, um auf den Standardwert zurückzusetzen.<br>
-    Unterstützte Einheiten: px, %, em, rem, vh, vw. Wird keine Einheit angegeben, wird automatisch px verwendet.
-</p>
+    <input type='text' name='kursorganizer_settings[max_width]' value='<?php echo esc_attr($value); ?>' class="regular-text"
+        placeholder="1200px">
+    <p class="description">
+        Steuert die maximale Breite des Inhalts (Parameter <code>maxWidth</code>).<br>
+        Standardwert: <code>1200px</code>. Lassen Sie das Feld leer, um auf den Standardwert zurückzusetzen.<br>
+        Unterstützte Einheiten: px, %, em, rem, vh, vw. Wird keine Einheit angegeben, wird automatisch px verwendet.
+    </p>
 <?php
 }
 
@@ -792,36 +795,36 @@ function kursorganizer_settings_page()
         $active_tab = 'settings';
     }
 ?>
-<div class="wrap">
-    <h1><?php echo esc_html(get_admin_page_title()); ?> <span
-            style="font-size: 0.6em; font-weight: normal; color: #666;">Version
-            <?php echo esc_html(KURSORGANIZER_VERSION); ?></span></h1>
+    <div class="wrap">
+        <h1><?php echo esc_html(get_admin_page_title()); ?> <span
+                style="font-size: 0.6em; font-weight: normal; color: #666;">Version
+                <?php echo esc_html(KURSORGANIZER_VERSION); ?></span></h1>
 
-    <!-- Tabs Navigation -->
-    <div style="max-width: 1200px;">
-        <h2 class="nav-tab-wrapper">
-            <a href="?page=kursorganizer-settings&tab=settings"
-                class="nav-tab <?php echo $active_tab === 'settings' ? 'nav-tab-active' : ''; ?>">
-                Einstellungen
-            </a>
-            <a href="?page=kursorganizer-settings&tab=generator"
-                class="nav-tab <?php echo $active_tab === 'generator' ? 'nav-tab-active' : ''; ?> <?php echo !$is_configured ? 'nav-tab-disabled' : ''; ?>"
-                <?php echo !$is_configured ? 'style="opacity: 0.5; cursor: not-allowed;" onclick="return false;"' : ''; ?>>
-                Shortcode
-                Generator<?php echo !$is_configured ? ' <span style="font-size: 0.8em;">(gesperrt)</span>' : ''; ?>
-            </a>
-            <a href="?page=kursorganizer-settings&tab=anleitungen"
-                class="nav-tab <?php echo $active_tab === 'anleitungen' ? 'nav-tab-active' : ''; ?>">
-                Anleitungen
-            </a>
-            <a href="?page=kursorganizer-settings&tab=changelog"
-                class="nav-tab <?php echo $active_tab === 'changelog' ? 'nav-tab-active' : ''; ?>">
-                Changelog
-            </a>
-        </h2>
-    </div>
+        <!-- Tabs Navigation -->
+        <div style="max-width: 1200px;">
+            <h2 class="nav-tab-wrapper">
+                <a href="?page=kursorganizer-settings&tab=settings"
+                    class="nav-tab <?php echo $active_tab === 'settings' ? 'nav-tab-active' : ''; ?>">
+                    Einstellungen
+                </a>
+                <a href="?page=kursorganizer-settings&tab=generator"
+                    class="nav-tab <?php echo $active_tab === 'generator' ? 'nav-tab-active' : ''; ?> <?php echo !$is_configured ? 'nav-tab-disabled' : ''; ?>"
+                    <?php echo !$is_configured ? 'style="opacity: 0.5; cursor: not-allowed;" onclick="return false;"' : ''; ?>>
+                    Shortcode
+                    Generator<?php echo !$is_configured ? ' <span style="font-size: 0.8em;">(gesperrt)</span>' : ''; ?>
+                </a>
+                <a href="?page=kursorganizer-settings&tab=anleitungen"
+                    class="nav-tab <?php echo $active_tab === 'anleitungen' ? 'nav-tab-active' : ''; ?>">
+                    Anleitungen
+                </a>
+                <a href="?page=kursorganizer-settings&tab=changelog"
+                    class="nav-tab <?php echo $active_tab === 'changelog' ? 'nav-tab-active' : ''; ?>">
+                    Changelog
+                </a>
+            </h2>
+        </div>
 
-    <?php
+        <?php
         if (isset($_GET['settings-updated'])) {
             add_settings_error(
                 'kursorganizer_messages',
@@ -843,7 +846,7 @@ function kursorganizer_settings_page()
             kursorganizer_settings_tab_content();
         }
         ?>
-</div>
+    </div>
 <?php
 }
 
@@ -872,34 +875,34 @@ function kursorganizer_settings_tab_content()
     $is_first_time = empty($main_app_url) && empty($ko_organization_id);
 ?>
 
-<!-- Initial Configuration Notice -->
-<?php if ($is_first_time): ?>
-<div class="card" style="max-width: 800px; margin-bottom: 20px; border-left: 4px solid #2271b1;">
-    <h2 style="margin-top: 0;">Willkommen bei KursOrganizer X!</h2>
-    <p>Bevor Sie das Plugin verwenden können, müssen Sie zunächst die folgenden beiden Werte konfigurieren:</p>
-    <ol>
-        <li><strong>KursOrganizer Web-App URL:</strong> Die URL Ihrer KursOrganizer Web-App</li>
-        <li><strong>KursOrganizer Organization ID:</strong> Die Organization ID Ihrer Schwimmschule</li>
-    </ol>
-    <p><strong>Nach der erfolgreichen Konfiguration werden alle weiteren Einstellungen freigeschaltet.</strong></p>
-    <p style="margin-top: 15px; padding: 10px; background: #e7f3ff; border-left: 3px solid #2271b1;">
-        <strong>Hinweis:</strong> Falls Ihnen diese Werte nicht bekannt sind, wenden Sie sich bitte an <a
-            href="mailto:support@kursorganizer.com">support@kursorganizer.com</a>.
-    </p>
-</div>
-<?php elseif ($has_validation_error): ?>
-<div class="card" style="max-width: 800px; margin-bottom: 20px; border-left: 4px solid #d63638;">
-    <h2 style="margin-top: 0; color: #d63638;">⚠️ Konfigurationsfehler</h2>
-    <p><strong>Die URL und die Organization ID stimmen nicht überein.</strong></p>
-    <p>Bitte korrigieren Sie die Einstellungen, bevor Sie fortfahren können. Alle anderen Funktionen sind gesperrt, bis
-        die Konfiguration korrekt ist.</p>
-</div>
-<?php endif; ?>
+    <!-- Initial Configuration Notice -->
+    <?php if ($is_first_time): ?>
+        <div class="card" style="max-width: 800px; margin-bottom: 20px; border-left: 4px solid #2271b1;">
+            <h2 style="margin-top: 0;">Willkommen bei KursOrganizer X!</h2>
+            <p>Bevor Sie das Plugin verwenden können, müssen Sie zunächst die folgenden beiden Werte konfigurieren:</p>
+            <ol>
+                <li><strong>KursOrganizer Web-App URL:</strong> Die URL Ihrer KursOrganizer Web-App</li>
+                <li><strong>KursOrganizer Organization ID:</strong> Die Organization ID Ihrer Schwimmschule</li>
+            </ol>
+            <p><strong>Nach der erfolgreichen Konfiguration werden alle weiteren Einstellungen freigeschaltet.</strong></p>
+            <p style="margin-top: 15px; padding: 10px; background: #e7f3ff; border-left: 3px solid #2271b1;">
+                <strong>Hinweis:</strong> Falls Ihnen diese Werte nicht bekannt sind, wenden Sie sich bitte an <a
+                    href="mailto:support@kursorganizer.com">support@kursorganizer.com</a>.
+            </p>
+        </div>
+    <?php elseif ($has_validation_error): ?>
+        <div class="card" style="max-width: 800px; margin-bottom: 20px; border-left: 4px solid #d63638;">
+            <h2 style="margin-top: 0; color: #d63638;">⚠️ Konfigurationsfehler</h2>
+            <p><strong>Die URL und die Organization ID stimmen nicht überein.</strong></p>
+            <p>Bitte korrigieren Sie die Einstellungen, bevor Sie fortfahren können. Alle anderen Funktionen sind gesperrt, bis
+                die Konfiguration korrekt ist.</p>
+        </div>
+    <?php endif; ?>
 
-<!-- URL Configuration Form -->
-<div class="card" style="max-width: 800px; margin-bottom: 20px;">
-    <form action="options.php" method="post" id="kursorganizer-settings-form">
-        <?php
+    <!-- URL Configuration Form -->
+    <div class="card" style="max-width: 800px; margin-bottom: 20px;">
+        <form action="options.php" method="post" id="kursorganizer-settings-form">
+            <?php
             settings_fields('kursorganizer_settings');
 
             // Render sections manually to control visibility
@@ -937,50 +940,50 @@ function kursorganizer_settings_tab_content()
                 }
             }
             ?>
-        <?php if (!$is_configured): ?>
-        <div style="padding: 15px; background: #f0f0f1; border-left: 4px solid #2271b1; margin-top: 20px;">
-            <p style="margin: 0;"><strong>Weitere Einstellungen werden nach erfolgreicher Konfiguration
-                    freigeschaltet.</strong></p>
-        </div>
-        <?php endif; ?>
-        <p class="submit">
-            <?php submit_button('Speichern', 'primary', 'submit', false, array('id' => 'kursorganizer-submit-btn', 'disabled' => $disable_save_button)); ?>
-        </p>
-    </form>
-</div>
-<?php if ($has_validation_error && !$is_configured): ?>
-<script>
-jQuery(document).ready(function($) {
-    // Only disable fields if plugin is not configured AND there's a validation error
-    // Disable all form fields except URL and Organization ID
-    $('#kursorganizer-settings-form input:not([name*="main_app_url"]):not([name*="ko_organization_id"]), #kursorganizer-settings-form select, #kursorganizer-settings-form textarea')
-        .prop('disabled', true).css('opacity', '0.6');
+            <?php if (!$is_configured): ?>
+                <div style="padding: 15px; background: #f0f0f1; border-left: 4px solid #2271b1; margin-top: 20px;">
+                    <p style="margin: 0;"><strong>Weitere Einstellungen werden nach erfolgreicher Konfiguration
+                            freigeschaltet.</strong></p>
+                </div>
+            <?php endif; ?>
+            <p class="submit">
+                <?php submit_button('Speichern', 'primary', 'submit', false, array('id' => 'kursorganizer-submit-btn', 'disabled' => $disable_save_button)); ?>
+            </p>
+        </form>
+    </div>
+    <?php if ($has_validation_error && !$is_configured): ?>
+        <script>
+            jQuery(document).ready(function($) {
+                // Only disable fields if plugin is not configured AND there's a validation error
+                // Disable all form fields except URL and Organization ID
+                $('#kursorganizer-settings-form input:not([name*="main_app_url"]):not([name*="ko_organization_id"]), #kursorganizer-settings-form select, #kursorganizer-settings-form textarea')
+                    .prop('disabled', true).css('opacity', '0.6');
 
-    // Re-enable fields when URL or Organization ID changes
-    $('input[name="kursorganizer_settings[main_app_url]"], input[name="kursorganizer_settings[ko_organization_id]"]')
-        .on('input change', function() {
-            // Re-enable all fields temporarily
-            $('#kursorganizer-settings-form input, #kursorganizer-settings-form select, #kursorganizer-settings-form textarea')
-                .prop('disabled', false).css('opacity', '1');
-            $('#kursorganizer-submit-btn').prop('disabled', false);
+                // Re-enable fields when URL or Organization ID changes
+                $('input[name="kursorganizer_settings[main_app_url]"], input[name="kursorganizer_settings[ko_organization_id]"]')
+                    .on('input change', function() {
+                        // Re-enable all fields temporarily
+                        $('#kursorganizer-settings-form input, #kursorganizer-settings-form select, #kursorganizer-settings-form textarea')
+                            .prop('disabled', false).css('opacity', '1');
+                        $('#kursorganizer-submit-btn').prop('disabled', false);
+                    });
+            });
+        </script>
+    <?php endif; ?>
+
+    <script>
+        jQuery(document).ready(function($) {
+            // Ensure save button is enabled if plugin is configured
+            var urlValue = $('input[name="kursorganizer_settings[main_app_url]"]').val().trim();
+            var orgIdValue = $('#ko_organization_id').val().trim();
+            var isConfigured = urlValue.length > 0 && orgIdValue.length > 0;
+
+            if (isConfigured) {
+                // Enable save button if plugin is configured
+                $('#kursorganizer-submit-btn').prop('disabled', false);
+            }
         });
-});
-</script>
-<?php endif; ?>
-
-<script>
-jQuery(document).ready(function($) {
-    // Ensure save button is enabled if plugin is configured
-    var urlValue = $('input[name="kursorganizer_settings[main_app_url]"]').val().trim();
-    var orgIdValue = $('#ko_organization_id').val().trim();
-    var isConfigured = urlValue.length > 0 && orgIdValue.length > 0;
-
-    if (isConfigured) {
-        // Enable save button if plugin is configured
-        $('#kursorganizer-submit-btn').prop('disabled', false);
-    }
-});
-</script>
+    </script>
 <?php
 }
 
@@ -988,171 +991,171 @@ jQuery(document).ready(function($) {
 function kursorganizer_anleitungen_tab_content()
 {
 ?>
-<!-- Initial Setup Guide -->
-<div class="card" style="max-width: 1200px; margin-bottom: 20px;">
-    <h2>Initiales Setup</h2>
-    <p>Bevor Sie das Plugin verwenden können, müssen Sie zunächst die folgenden beiden Werte konfigurieren:</p>
+    <!-- Initial Setup Guide -->
+    <div class="card" style="max-width: 1200px; margin-bottom: 20px;">
+        <h2>Initiales Setup</h2>
+        <p>Bevor Sie das Plugin verwenden können, müssen Sie zunächst die folgenden beiden Werte konfigurieren:</p>
 
-    <h3>Schritt 1: KursOrganizer Web-App URL eingeben</h3>
-    <ol>
-        <li>Gehen Sie zum Tab <strong>"Einstellungen"</strong></li>
-        <li>Geben Sie im Feld <strong>"KursOrganizer Web-App URL"</strong> die vollständige URL Ihrer KursOrganizer
-            Web-App ein</li>
-        <li>Die URL sollte folgendem Format entsprechen: <code>https://app.ihrefirma.kursorganizer.com/build/</code>
-        </li>
-        <li>Beispiel: <code>https://app.schwimmschule-xyz.kursorganizer.com/build/</code></li>
-    </ol>
+        <h3>Schritt 1: KursOrganizer Web-App URL eingeben</h3>
+        <ol>
+            <li>Gehen Sie zum Tab <strong>"Einstellungen"</strong></li>
+            <li>Geben Sie im Feld <strong>"KursOrganizer Web-App URL"</strong> die vollständige URL Ihrer KursOrganizer
+                Web-App ein</li>
+            <li>Die URL sollte folgendem Format entsprechen: <code>https://app.ihrefirma.kursorganizer.com/build/</code>
+            </li>
+            <li>Beispiel: <code>https://app.schwimmschule-xyz.kursorganizer.com/build/</code></li>
+        </ol>
 
-    <h3>Schritt 2: KursOrganizer Organization ID eingeben</h3>
-    <ol>
-        <li>Geben Sie im Feld <strong>"KursOrganizer Organization ID"</strong> die Organization ID Ihrer Schwimmschule
-            ein</li>
-        <li>Die Organization ID ist eine eindeutige Kennung (UUID-Format, z.B.
-            <code>123e4567-e89b-12d3-a456-426614174000</code>)
-        </li>
-        <li>Sie erhalten diese ID von Ihrem KursOrganizer Administrator oder aus dem KursOrganizer Backend</li>
-    </ol>
+        <h3>Schritt 2: KursOrganizer Organization ID eingeben</h3>
+        <ol>
+            <li>Geben Sie im Feld <strong>"KursOrganizer Organization ID"</strong> die Organization ID Ihrer Schwimmschule
+                ein</li>
+            <li>Die Organization ID ist eine eindeutige Kennung (UUID-Format, z.B.
+                <code>123e4567-e89b-12d3-a456-426614174000</code>)
+            </li>
+            <li>Sie erhalten diese ID von Ihrem KursOrganizer Administrator oder aus dem KursOrganizer Backend</li>
+        </ol>
 
-    <h3>Schritt 3: Verbindung testen</h3>
-    <ol>
-        <li>Klicken Sie auf den Button <strong>"Verbindung testen"</strong> neben dem Organization ID Feld</li>
-        <li>Das Plugin prüft automatisch, ob die URL und die Organization ID zusammenpassen</li>
-        <li>Bei erfolgreicher Validierung sehen Sie eine grüne Erfolgsmeldung</li>
-        <li>Bei Fehlern wird das entsprechende Feld rot markiert und eine Fehlermeldung angezeigt</li>
-    </ol>
+        <h3>Schritt 3: Verbindung testen</h3>
+        <ol>
+            <li>Klicken Sie auf den Button <strong>"Verbindung testen"</strong> neben dem Organization ID Feld</li>
+            <li>Das Plugin prüft automatisch, ob die URL und die Organization ID zusammenpassen</li>
+            <li>Bei erfolgreicher Validierung sehen Sie eine grüne Erfolgsmeldung</li>
+            <li>Bei Fehlern wird das entsprechende Feld rot markiert und eine Fehlermeldung angezeigt</li>
+        </ol>
 
-    <h3>Schritt 4: Einstellungen speichern</h3>
-    <ol>
-        <li>Klicken Sie auf den Button <strong>"Speichern"</strong></li>
-        <li>Das Plugin validiert die Eingaben automatisch beim Speichern</li>
-        <li>Wenn URL und Organization ID nicht übereinstimmen, werden die Einstellungen nicht gespeichert und eine
-            Fehlermeldung angezeigt</li>
-        <li>Nach erfolgreicher Konfiguration werden alle weiteren Einstellungen freigeschaltet</li>
-    </ol>
+        <h3>Schritt 4: Einstellungen speichern</h3>
+        <ol>
+            <li>Klicken Sie auf den Button <strong>"Speichern"</strong></li>
+            <li>Das Plugin validiert die Eingaben automatisch beim Speichern</li>
+            <li>Wenn URL und Organization ID nicht übereinstimmen, werden die Einstellungen nicht gespeichert und eine
+                Fehlermeldung angezeigt</li>
+            <li>Nach erfolgreicher Konfiguration werden alle weiteren Einstellungen freigeschaltet</li>
+        </ol>
 
-    <div style="padding: 15px; background: #fff3cd; border-left: 4px solid #2271b1; margin-top: 20px;">
-        <p style="margin: 0;"><strong>Wichtig:</strong> Die URL und die Organization ID müssen zusammenpassen, damit das
-            Plugin funktioniert. Diese Validierung dient der Sicherheit und stellt sicher, dass nur die richtige
-            Schwimmschule eingebunden wird.</p>
+        <div style="padding: 15px; background: #fff3cd; border-left: 4px solid #2271b1; margin-top: 20px;">
+            <p style="margin: 0;"><strong>Wichtig:</strong> Die URL und die Organization ID müssen zusammenpassen, damit das
+                Plugin funktioniert. Diese Validierung dient der Sicherheit und stellt sicher, dass nur die richtige
+                Schwimmschule eingebunden wird.</p>
+        </div>
+
+        <div style="padding: 15px; background: #e7f3ff; border-left: 4px solid #2271b1; margin-top: 20px;">
+            <p style="margin: 0;"><strong>Hinweis:</strong> Falls Ihnen die KursOrganizer Web-App URL oder die KursOrganizer
+                Organization ID nicht bekannt sind, wenden Sie sich bitte an <a
+                    href="mailto:support@kursorganizer.com">support@kursorganizer.com</a>.</p>
+        </div>
+
+        <h3>Was passiert nach dem Setup?</h3>
+        <p>Nach erfolgreicher Konfiguration können Sie:</p>
+        <ul>
+            <li>Den <strong>Shortcode Generator</strong> verwenden, um Shortcodes zu erstellen</li>
+            <li>Weitere Einstellungen wie Debug-Modus und CSS-Anpassungen konfigurieren</li>
+            <li>Den Shortcode <code>[kursorganizer_iframe]</code> in Ihren WordPress-Seiten verwenden</li>
+        </ul>
     </div>
 
-    <div style="padding: 15px; background: #e7f3ff; border-left: 4px solid #2271b1; margin-top: 20px;">
-        <p style="margin: 0;"><strong>Hinweis:</strong> Falls Ihnen die KursOrganizer Web-App URL oder die KursOrganizer
-            Organization ID nicht bekannt sind, wenden Sie sich bitte an <a
-                href="mailto:support@kursorganizer.com">support@kursorganizer.com</a>.</p>
+    <!-- Shortcode Examples -->
+    <div class="card" style="max-width: 1200px;">
+        <h2>Shortcode Beispiele</h2>
+
+        <h3>Allgemeine Kurssuche</h3>
+        <p>Zeigt alle verfügbaren Kurse mit Filtermenü an:</p>
+        <code>[kursorganizer_iframe]</code>
+
+        <h3>Kurssuche nach Stadt</h3>
+        <p>Zeigt alle Kurse in einer bestimmten Stadt an:</p>
+        <code>[kursorganizer_iframe city="Berlin"]</code>
+
+        <h3>Bestimmter Kursleiter</h3>
+        <p>Zeigt alle Kurse eines bestimmten Kursleiters an:</p>
+        <code>[kursorganizer_iframe instructorid="trainer-id"]</code>
+
+        <h3>Bestimmter Kurstyp</h3>
+        <p>Zeigt einen spezifischen Kurstyp an:</p>
+        <code>[kursorganizer_iframe coursetypeid="kurstyp-id"]</code>
+
+        <h3>Mehrere Kurstypen</h3>
+        <p>Zeigt mehrere spezifische Kurstypen an (IDs kommagetrennt):</p>
+        <code>[kursorganizer_iframe coursetypeids="id1,id2,id3"]</code>
+
+        <h3>Standort-spezifische Kurse</h3>
+        <p>Zeigt Kurse an einem bestimmten Standort:</p>
+        <code>[kursorganizer_iframe locationid="standort-id"]</code>
+
+        <h3>Kurse an bestimmten Tagen</h3>
+        <p>Filtert Kurse nach bestimmten Tagen (ODER-Verknüpfung):</p>
+        <code>[kursorganizer_iframe dayfilter="Montag,Dienstag,Mittwoch"]</code>
+        <p class="description">Verwenden Sie deutsche Wochentagsnamen: Montag, Dienstag, Mittwoch, Donnerstag, Freitag,
+            Samstag, Sonntag. Mehrere Tage werden komma-separiert angegeben.</p>
+
+        <h3>Kurskategorie</h3>
+        <p>Zeigt Kurse einer bestimmten Kategorie:</p>
+        <code>[kursorganizer_iframe coursecategoryid="kategorie-id"]</code>
+
+        <h3>Ohne Filtermenü</h3>
+        <p>Zeigt Kurse ohne das Filtermenü an:</p>
+        <code>[kursorganizer_iframe showfiltermenu="false"]</code>
+
+        <h3>Komplexes Beispiel</h3>
+        <p>Kombination mehrerer Parameter:</p>
+        <code>[kursorganizer_iframe city="Berlin" coursetypeids="92f06d07-ca58-4575-892d-0c75d9afc5e5" showfiltermenu="false"]</code>
+        <p class="description">Zeigt spezifische Kurse (z.B. Pingu-Schwimmkurs) in Berlin ohne Filtermenü</p>
+
+        <hr>
+
+        <h3>Hinweise zur Verwendung</h3>
+        <ul>
+            <li>Alle Parameter sind optional</li>
+            <li>Parameter können beliebig kombiniert werden</li>
+            <li>IDs können Sie aus Ihrem KursOrganizer Backend entnehmen</li>
+            <li>Lassen Sie Parameter weg, wenn keine Einschränkung gewünscht ist</li>
+        </ul>
     </div>
 
-    <h3>Was passiert nach dem Setup?</h3>
-    <p>Nach erfolgreicher Konfiguration können Sie:</p>
-    <ul>
-        <li>Den <strong>Shortcode Generator</strong> verwenden, um Shortcodes zu erstellen</li>
-        <li>Weitere Einstellungen wie Debug-Modus und CSS-Anpassungen konfigurieren</li>
-        <li>Den Shortcode <code>[kursorganizer_iframe]</code> in Ihren WordPress-Seiten verwenden</li>
-    </ul>
-</div>
+    <!-- CSS-Anpassungen Info -->
+    <div class="card" style="max-width: 1200px; margin-top: 20px;">
+        <h2>CSS-Anpassungen</h2>
+        <p>Sie können das Aussehen des KursOrganizer iFrames über eine externe CSS-Datei anpassen.</p>
 
-<!-- Shortcode Examples -->
-<div class="card" style="max-width: 1200px;">
-    <h2>Shortcode Beispiele</h2>
+        <h3>So binden Sie eine CSS-Datei ein</h3>
+        <ol>
+            <li><strong>Beispiel-CSS testen:</strong> Aktivieren Sie die Option "Beispiel-CSS aktivieren" in den
+                Einstellungen, um die mitgelieferte Beispiel-CSS-Datei zu testen. Sie können diese auch <a
+                    href="<?php echo esc_url(KURSORGANIZER_PLUGIN_URL . 'assets/css/external-css-example.css'); ?>"
+                    download="external-css-example.css">herunterladen</a> und als Vorlage verwenden.
+                <strong>Hinweis:</strong> Die CSS wird über einen PHP-Endpoint geladen, um Chrome-Kompatibilität zu
+                gewährleisten.
+            </li>
+            <li><strong>CSS-Datei erstellen:</strong> Erstellen Sie eine CSS-Datei mit Ihren Anpassungen und laden Sie
+                diese auf Ihren Server hoch.</li>
+            <li><strong>Öffentliche URL verwenden:</strong> Stellen Sie sicher, dass die CSS-Datei über eine öffentliche
+                URL erreichbar ist.</li>
+            <li><strong>URL in Einstellungen eintragen:</strong> Deaktivieren Sie die Beispiel-CSS und geben Sie die
+                vollständige URL zu Ihrer CSS-Datei im
+                Feld "CSS-Datei URL" oben in den Einstellungen ein.</li>
+            <li><strong>Speichern:</strong> Klicken Sie auf "Speichern", damit die Änderungen wirksam werden.</li>
+        </ol>
 
-    <h3>Allgemeine Kurssuche</h3>
-    <p>Zeigt alle verfügbaren Kurse mit Filtermenü an:</p>
-    <code>[kursorganizer_iframe]</code>
+        <h3>Beispiel-URL</h3>
+        <p>Die URL sollte folgendem Format entsprechen:</p>
+        <code>https://www.ihre-domain.de/wp-content/themes/theme-name/custom-kursorganizer.css</code>
 
-    <h3>Kurssuche nach Stadt</h3>
-    <p>Zeigt alle Kurse in einer bestimmten Stadt an:</p>
-    <code>[kursorganizer_iframe city="Berlin"]</code>
+        <hr>
 
-    <h3>Bestimmter Kursleiter</h3>
-    <p>Zeigt alle Kurse eines bestimmten Kursleiters an:</p>
-    <code>[kursorganizer_iframe instructorid="trainer-id"]</code>
-
-    <h3>Bestimmter Kurstyp</h3>
-    <p>Zeigt einen spezifischen Kurstyp an:</p>
-    <code>[kursorganizer_iframe coursetypeid="kurstyp-id"]</code>
-
-    <h3>Mehrere Kurstypen</h3>
-    <p>Zeigt mehrere spezifische Kurstypen an (IDs kommagetrennt):</p>
-    <code>[kursorganizer_iframe coursetypeids="id1,id2,id3"]</code>
-
-    <h3>Standort-spezifische Kurse</h3>
-    <p>Zeigt Kurse an einem bestimmten Standort:</p>
-    <code>[kursorganizer_iframe locationid="standort-id"]</code>
-
-    <h3>Kurse an bestimmten Tagen</h3>
-    <p>Filtert Kurse nach bestimmten Tagen (ODER-Verknüpfung):</p>
-    <code>[kursorganizer_iframe dayfilter="Montag,Dienstag,Mittwoch"]</code>
-    <p class="description">Verwenden Sie deutsche Wochentagsnamen: Montag, Dienstag, Mittwoch, Donnerstag, Freitag,
-        Samstag, Sonntag. Mehrere Tage werden komma-separiert angegeben.</p>
-
-    <h3>Kurskategorie</h3>
-    <p>Zeigt Kurse einer bestimmten Kategorie:</p>
-    <code>[kursorganizer_iframe coursecategoryid="kategorie-id"]</code>
-
-    <h3>Ohne Filtermenü</h3>
-    <p>Zeigt Kurse ohne das Filtermenü an:</p>
-    <code>[kursorganizer_iframe showfiltermenu="false"]</code>
-
-    <h3>Komplexes Beispiel</h3>
-    <p>Kombination mehrerer Parameter:</p>
-    <code>[kursorganizer_iframe city="Berlin" coursetypeids="92f06d07-ca58-4575-892d-0c75d9afc5e5" showfiltermenu="false"]</code>
-    <p class="description">Zeigt spezifische Kurse (z.B. Pingu-Schwimmkurs) in Berlin ohne Filtermenü</p>
-
-    <hr>
-
-    <h3>Hinweise zur Verwendung</h3>
-    <ul>
-        <li>Alle Parameter sind optional</li>
-        <li>Parameter können beliebig kombiniert werden</li>
-        <li>IDs können Sie aus Ihrem KursOrganizer Backend entnehmen</li>
-        <li>Lassen Sie Parameter weg, wenn keine Einschränkung gewünscht ist</li>
-    </ul>
-</div>
-
-<!-- CSS-Anpassungen Info -->
-<div class="card" style="max-width: 1200px; margin-top: 20px;">
-    <h2>CSS-Anpassungen</h2>
-    <p>Sie können das Aussehen des KursOrganizer iFrames über eine externe CSS-Datei anpassen.</p>
-
-    <h3>So binden Sie eine CSS-Datei ein</h3>
-    <ol>
-        <li><strong>Beispiel-CSS testen:</strong> Aktivieren Sie die Option "Beispiel-CSS aktivieren" in den
-            Einstellungen, um die mitgelieferte Beispiel-CSS-Datei zu testen. Sie können diese auch <a
-                href="<?php echo esc_url(KURSORGANIZER_PLUGIN_URL . 'assets/css/external-css-example.css'); ?>"
-                download="external-css-example.css">herunterladen</a> und als Vorlage verwenden.
-            <strong>Hinweis:</strong> Die CSS wird über einen PHP-Endpoint geladen, um Chrome-Kompatibilität zu
-            gewährleisten.
-        </li>
-        <li><strong>CSS-Datei erstellen:</strong> Erstellen Sie eine CSS-Datei mit Ihren Anpassungen und laden Sie
-            diese auf Ihren Server hoch.</li>
-        <li><strong>Öffentliche URL verwenden:</strong> Stellen Sie sicher, dass die CSS-Datei über eine öffentliche
-            URL erreichbar ist.</li>
-        <li><strong>URL in Einstellungen eintragen:</strong> Deaktivieren Sie die Beispiel-CSS und geben Sie die
-            vollständige URL zu Ihrer CSS-Datei im
-            Feld "CSS-Datei URL" oben in den Einstellungen ein.</li>
-        <li><strong>Speichern:</strong> Klicken Sie auf "Speichern", damit die Änderungen wirksam werden.</li>
-    </ol>
-
-    <h3>Beispiel-URL</h3>
-    <p>Die URL sollte folgendem Format entsprechen:</p>
-    <code>https://www.ihre-domain.de/wp-content/themes/theme-name/custom-kursorganizer.css</code>
-
-    <hr>
-
-    <h3>Wichtige Hinweise</h3>
-    <ul>
-        <li><strong>Öffentliche Zugänglichkeit:</strong> Die CSS-Datei muss öffentlich über HTTP/HTTPS erreichbar
-            sein</li>
-        <li><strong>CORS-Header:</strong> Die CSS-Datei muss CORS-Header erlauben, damit sie vom iFrame geladen
-            werden kann</li>
-        <li><strong>Ant Design:</strong> Die App verwendet Ant Design. Sie können Ant Design Komponenten-Klassen
-            direkt stylen (z.B. <code>.ant-btn-primary</code>, <code>.ant-card</code>, <code>.ant-table</code>)</li>
-        <li><strong>CSS-Spezifität:</strong> Verwenden Sie ausreichend spezifische Selektoren, um die
-            Standard-Styles zu überschreiben</li>
-        <li><strong>Performance:</strong> Große CSS-Dateien können die Ladezeit beeinträchtigen</li>
-    </ul>
-</div>
-<?php
+        <h3>Wichtige Hinweise</h3>
+        <ul>
+            <li><strong>Öffentliche Zugänglichkeit:</strong> Die CSS-Datei muss öffentlich über HTTP/HTTPS erreichbar
+                sein</li>
+            <li><strong>CORS-Header:</strong> Die CSS-Datei muss CORS-Header erlauben, damit sie vom iFrame geladen
+                werden kann</li>
+            <li><strong>Ant Design:</strong> Die App verwendet Ant Design. Sie können Ant Design Komponenten-Klassen
+                direkt stylen (z.B. <code>.ant-btn-primary</code>, <code>.ant-card</code>, <code>.ant-table</code>)</li>
+            <li><strong>CSS-Spezifität:</strong> Verwenden Sie ausreichend spezifische Selektoren, um die
+                Standard-Styles zu überschreiben</li>
+            <li><strong>Performance:</strong> Große CSS-Dateien können die Ladezeit beeinträchtigen</li>
+        </ul>
+    </div>
+    <?php
 }
 
 // Shortcode Generator tab content
@@ -1166,35 +1169,35 @@ function kursorganizer_generator_tab_content()
         $ko_organization_id = isset($options['ko_organization_id']) ? trim($options['ko_organization_id']) : '';
         $is_first_time = empty($main_app_url) && empty($ko_organization_id);
     ?>
-<div class="card" style="max-width: 800px; margin-top: 20px;">
-    <?php if ($is_first_time): ?>
-    <div style="padding: 15px; background: #fff3cd; border-left: 4px solid #2271b1; margin-bottom: 20px;">
-        <h2 style="margin-top: 0;">Initialkonfiguration erforderlich</h2>
-        <p><strong>Bevor Sie den Shortcode Generator verwenden können, müssen Sie zunächst die Plugin-Einstellungen
-                konfigurieren.</strong></p>
-        <p>Bitte gehen Sie zum Tab <strong>"Einstellungen"</strong> und geben Sie dort die folgenden Werte ein:</p>
-        <ol>
-            <li><strong>KursOrganizer Web-App URL</strong></li>
-            <li><strong>KursOrganizer Organization ID</strong></li>
-        </ol>
-        <p>Nach erfolgreicher Konfiguration können Sie den Shortcode Generator verwenden.</p>
-    </div>
-    <?php else: ?>
-    <div style="padding: 15px; background: #fff3cd; border-left: 4px solid #d63638; margin-bottom: 20px;">
-        <h2 style="margin-top: 0; color: #d63638;">⚠️ Konfigurationsfehler</h2>
-        <p><strong>Die URL und die Organization ID stimmen nicht überein oder die Konfiguration ist
-                unvollständig.</strong></p>
-        <p>Bitte korrigieren Sie die Einstellungen im Tab <strong>"Einstellungen"</strong>, bevor Sie den Shortcode
-            Generator verwenden können.</p>
-        <p><strong>Konfigurierte URL:</strong> <code><?php echo esc_html($main_app_url ?: 'Nicht gesetzt'); ?></code>
-        </p>
-        <p><strong>Konfigurierte Organization ID:</strong>
-            <code><?php echo esc_html($ko_organization_id ?: 'Nicht gesetzt'); ?></code>
-        </p>
-    </div>
-    <?php endif; ?>
-</div>
-<?php
+        <div class="card" style="max-width: 800px; margin-top: 20px;">
+            <?php if ($is_first_time): ?>
+                <div style="padding: 15px; background: #fff3cd; border-left: 4px solid #2271b1; margin-bottom: 20px;">
+                    <h2 style="margin-top: 0;">Initialkonfiguration erforderlich</h2>
+                    <p><strong>Bevor Sie den Shortcode Generator verwenden können, müssen Sie zunächst die Plugin-Einstellungen
+                            konfigurieren.</strong></p>
+                    <p>Bitte gehen Sie zum Tab <strong>"Einstellungen"</strong> und geben Sie dort die folgenden Werte ein:</p>
+                    <ol>
+                        <li><strong>KursOrganizer Web-App URL</strong></li>
+                        <li><strong>KursOrganizer Organization ID</strong></li>
+                    </ol>
+                    <p>Nach erfolgreicher Konfiguration können Sie den Shortcode Generator verwenden.</p>
+                </div>
+            <?php else: ?>
+                <div style="padding: 15px; background: #fff3cd; border-left: 4px solid #d63638; margin-bottom: 20px;">
+                    <h2 style="margin-top: 0; color: #d63638;">⚠️ Konfigurationsfehler</h2>
+                    <p><strong>Die URL und die Organization ID stimmen nicht überein oder die Konfiguration ist
+                            unvollständig.</strong></p>
+                    <p>Bitte korrigieren Sie die Einstellungen im Tab <strong>"Einstellungen"</strong>, bevor Sie den Shortcode
+                        Generator verwenden können.</p>
+                    <p><strong>Konfigurierte URL:</strong> <code><?php echo esc_html($main_app_url ?: 'Nicht gesetzt'); ?></code>
+                    </p>
+                    <p><strong>Konfigurierte Organization ID:</strong>
+                        <code><?php echo esc_html($ko_organization_id ?: 'Nicht gesetzt'); ?></code>
+                    </p>
+                </div>
+            <?php endif; ?>
+        </div>
+    <?php
         return;
     }
 
@@ -1239,32 +1242,32 @@ function kursorganizer_generator_tab_content()
         $error_message = 'Fehler beim Laden der Kursleiter: ' . $instructors->get_error_message();
     }
     ?>
-<div class="card" style="max-width: 800px; margin-top: 20px;">
-    <h2>Shortcode Generator</h2>
-    <p>Wählen Sie die gewünschten Optionen aus und generieren Sie automatisch den passenden Shortcode.</p>
+    <div class="card" style="max-width: 800px; margin-top: 20px;">
+        <h2>Shortcode Generator</h2>
+        <p>Wählen Sie die gewünschten Optionen aus und generieren Sie automatisch den passenden Shortcode.</p>
 
-    <?php if ($has_errors): ?>
-    <div class="notice notice-error">
-        <p><strong>Fehler:</strong> <?php echo wp_kses_post($error_message); ?></p>
-        <p>Bitte stellen Sie sicher, dass die "KursOrganizer Web-App URL" in den Einstellungen korrekt konfiguriert ist.
-        </p>
-        <div style="margin-top: 15px; padding: 10px; background: #f0f0f1; border-left: 4px solid #d63638;">
-            <?php echo $debug_info; ?>
-        </div>
-        <p style="margin-top: 15px;">
-            <strong>Tipps für lokale Entwicklung:</strong><br>
-            • Stelle sicher, dass deine lokale API unter <code><?php echo esc_html($api_url); ?></code> läuft<br>
-            • Die API muss die Origin <code><?php echo esc_html($origin); ?></code> akzeptieren<br>
-            • Prüfe die Browser-Konsole (F12) für weitere Details<br>
-            • Prüfe die WordPress-Debug-Logs (normalerweise in <code>wp-content/debug.log</code>) für detaillierte
-            API-Requests<br>
-            • Teste die Query direkt im GraphQL Playground: <a href="<?php echo esc_url($api_url); ?>"
-                target="_blank"><?php echo esc_html($api_url); ?></a>
-        </p>
-        <p style="margin-top: 15px;">
-            <strong>Test-Query für GraphQL Playground:</strong><br>
-            <textarea readonly
-                style="width: 100%; height: 100px; font-family: monospace; font-size: 12px; padding: 10px; background: #f0f0f1;">
+        <?php if ($has_errors): ?>
+            <div class="notice notice-error">
+                <p><strong>Fehler:</strong> <?php echo wp_kses_post($error_message); ?></p>
+                <p>Bitte stellen Sie sicher, dass die "KursOrganizer Web-App URL" in den Einstellungen korrekt konfiguriert ist.
+                </p>
+                <div style="margin-top: 15px; padding: 10px; background: #f0f0f1; border-left: 4px solid #d63638;">
+                    <?php echo $debug_info; ?>
+                </div>
+                <p style="margin-top: 15px;">
+                    <strong>Tipps für lokale Entwicklung:</strong><br>
+                    • Stelle sicher, dass deine lokale API unter <code><?php echo esc_html($api_url); ?></code> läuft<br>
+                    • Die API muss die Origin <code><?php echo esc_html($origin); ?></code> akzeptieren<br>
+                    • Prüfe die Browser-Konsole (F12) für weitere Details<br>
+                    • Prüfe die WordPress-Debug-Logs (normalerweise in <code>wp-content/debug.log</code>) für detaillierte
+                    API-Requests<br>
+                    • Teste die Query direkt im GraphQL Playground: <a href="<?php echo esc_url($api_url); ?>"
+                        target="_blank"><?php echo esc_html($api_url); ?></a>
+                </p>
+                <p style="margin-top: 15px;">
+                    <strong>Test-Query für GraphQL Playground:</strong><br>
+                    <textarea readonly
+                        style="width: 100%; height: 100px; font-family: monospace; font-size: 12px; padding: 10px; background: #f0f0f1;">
 query GetCompany {
   companyPublic {
     name
@@ -1275,177 +1278,177 @@ query GetCompany {
   }
 }
                     </textarea><br>
-            <strong>HTTP Headers für GraphQL Playground:</strong><br>
-            <textarea readonly
-                style="width: 100%; height: 80px; font-family: monospace; font-size: 12px; padding: 10px; background: #f0f0f1;">
+                    <strong>HTTP Headers für GraphQL Playground:</strong><br>
+                    <textarea readonly
+                        style="width: 100%; height: 80px; font-family: monospace; font-size: 12px; padding: 10px; background: #f0f0f1;">
 {
   "Origin": "<?php echo esc_html($origin); ?>",
   "x-application-type": "end-user-app"
 }
                     </textarea>
-        </p>
+                </p>
+            </div>
+        <?php else: ?>
+
+            <form id="kursorganizer-generator-form">
+                <table class="form-table" role="presentation">
+                    <!-- Course Types -->
+                    <tr>
+                        <th scope="row"><label for="generator-coursetypes">Kurstypen</label></th>
+                        <td>
+                            <select id="generator-coursetypes" name="coursetypes[]" multiple
+                                style="min-height: 150px; width: 100%; max-width: 400px;">
+                                <?php foreach ($course_types as $type): ?>
+                                    <?php if ($type['showInWeb']): ?>
+                                        <option value="<?php echo esc_attr($type['id']); ?>">
+                                            <?php echo esc_html($type['name']); ?>
+                                        </option>
+                                    <?php endif; ?>
+                                <?php endforeach; ?>
+                            </select>
+                            <p class="description">
+                                Mehrfachauswahl: Halten Sie Strg (Windows) oder Cmd (Mac) gedrückt, um mehrere Kurstypen
+                                auszuwählen.
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- Locations -->
+                    <tr>
+                        <th scope="row"><label for="generator-location">Standort</label></th>
+                        <td>
+                            <select id="generator-location" name="location">
+                                <option value="">-- Alle Standorte --</option>
+                                <?php foreach ($locations as $location): ?>
+                                    <option value="<?php echo esc_attr($location['id']); ?>">
+                                        <?php echo esc_html($location['city'] . ' - ' . $location['name']); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                            <p class="description">Optional: Filtern nach einem bestimmten Standort</p>
+                        </td>
+                    </tr>
+
+                    <!-- City -->
+                    <tr>
+                        <th scope="row"><label for="generator-city">Stadt</label></th>
+                        <td>
+                            <input type="text" id="generator-city" name="city" class="regular-text" placeholder="z.B. Berlin">
+                            <p class="description">
+                                Optional: Filtern nach Stadt als Text-String (nur wenn kein Standort ausgewählt).<br>
+                                Die Suche ist case-insensitive und unterstützt Teilstrings (z.B. "Berlin" findet auch
+                                "Berlin-Mitte").<br>
+                                <strong>Hinweis:</strong> Hier wird mit dem Stadtnamen gearbeitet, nicht mit einer ID.
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- Categories -->
+                    <tr>
+                        <th scope="row"><label for="generator-category">Kategorie</label></th>
+                        <td>
+                            <select id="generator-category" name="category">
+                                <option value="">-- Alle Kategorien --</option>
+                                <?php foreach ($categories as $category): ?>
+                                    <option value="<?php echo esc_attr($category['id']); ?>">
+                                        <?php echo esc_html($category['name']); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                            <p class="description">Optional: Filtern nach Kurskategorie</p>
+                        </td>
+                    </tr>
+
+                    <!-- Instructors -->
+                    <tr>
+                        <th scope="row"><label for="generator-instructor">Kursleiter</label></th>
+                        <td>
+                            <select id="generator-instructor" name="instructor">
+                                <option value="">-- Alle Kursleiter --</option>
+                                <?php foreach ($instructors as $instructor): ?>
+                                    <option value="<?php echo esc_attr($instructor['id']); ?>">
+                                        <?php echo esc_html($instructor['firstname'] . ' ' . $instructor['lastname']); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                            <p class="description">Optional: Filtern nach Kursleiter</p>
+                        </td>
+                    </tr>
+
+                    <!-- Day Filter -->
+                    <tr>
+                        <th scope="row"><label>Wochentage</label></th>
+                        <td>
+                            <fieldset id="day-filter-fieldset">
+                                <label><input type="checkbox" name="days[]" id="day-montag" value="Montag"> Montag</label><br>
+                                <label><input type="checkbox" name="days[]" id="day-dienstag" value="Dienstag">
+                                    Dienstag</label><br>
+                                <label><input type="checkbox" name="days[]" id="day-mittwoch" value="Mittwoch">
+                                    Mittwoch</label><br>
+                                <label><input type="checkbox" name="days[]" id="day-donnerstag" value="Donnerstag">
+                                    Donnerstag</label><br>
+                                <label><input type="checkbox" name="days[]" id="day-freitag" value="Freitag">
+                                    Freitag</label><br>
+                                <label><input type="checkbox" name="days[]" id="day-samstag" value="Samstag">
+                                    Samstag</label><br>
+                                <label><input type="checkbox" name="days[]" id="day-sonntag" value="Sonntag"> Sonntag</label>
+                            </fieldset>
+                            <p class="description">
+                                Optional: Nur Kurse an bestimmten Wochentagen anzeigen (ODER-Verknüpfung).<br>
+                                Mehrere Tage können ausgewählt werden. Es werden alle Kurse angezeigt, die an einem der
+                                ausgewählten Tage stattfinden.<br>
+                                <strong>Format:</strong> Deutsche Wochentagsnamen (Montag, Dienstag, etc.), komma-separiert.
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- Show Filter Menu -->
+                    <tr>
+                        <th scope="row"><label for="generator-showfiltermenu">Filtermenü anzeigen</label></th>
+                        <td>
+                            <label>
+                                <input type="checkbox" id="generator-showfiltermenu" name="showfiltermenu" checked>
+                                Filtermenü im iFrame anzeigen
+                            </label>
+                            <p class="description">Wenn deaktiviert, wird das Filtermenü im iFrame ausgeblendet</p>
+                        </td>
+                    </tr>
+                </table>
+
+                <p class="submit">
+                    <button type="button" id="generate-shortcode-btn" class="button button-primary">
+                        Shortcode generieren
+                    </button>
+                    <button type="button" id="reset-form-btn" class="button" style="margin-left: 10px;">
+                        Felder zurücksetzen
+                    </button>
+                    <button type="button" id="clear-cache-btn" class="button" style="margin-left: 10px;">
+                        Cache leeren
+                    </button>
+                </p>
+            </form>
+
+            <div id="generated-shortcode-container"
+                style="display: none; margin-top: 20px; padding: 15px; background: #f0f0f1; border-left: 4px solid #2271b1;">
+                <h3>Generierter Shortcode:</h3>
+                <textarea id="generated-shortcode" readonly
+                    style="width: 100%; height: 80px; font-family: monospace; font-size: 13px; padding: 10px;"></textarea>
+                <p>
+                    <button type="button" id="copy-shortcode-btn" class="button">
+                        In Zwischenablage kopieren
+                    </button>
+                    <span id="copy-success-message" style="color: green; margin-left: 10px; display: none;">✓ Kopiert!</span>
+                </p>
+                <p class="description">
+                    Fügen Sie diesen Shortcode in eine beliebige WordPress-Seite oder einen Beitrag ein.<br>
+                    <strong>Tipp:</strong> In WordPress Gutenberg wird der Shortcode automatisch als "Shortcode"-Block erkannt.
+                    Das ist normal und funktioniert korrekt. Falls Sie ihn als normalen Text benötigen, können Sie den Block-Typ
+                    nach dem Einfügen ändern.
+                </p>
+            </div>
+
+        <?php endif; ?>
     </div>
-    <?php else: ?>
-
-    <form id="kursorganizer-generator-form">
-        <table class="form-table" role="presentation">
-            <!-- Course Types -->
-            <tr>
-                <th scope="row"><label for="generator-coursetypes">Kurstypen</label></th>
-                <td>
-                    <select id="generator-coursetypes" name="coursetypes[]" multiple
-                        style="min-height: 150px; width: 100%; max-width: 400px;">
-                        <?php foreach ($course_types as $type): ?>
-                        <?php if ($type['showInWeb']): ?>
-                        <option value="<?php echo esc_attr($type['id']); ?>">
-                            <?php echo esc_html($type['name']); ?>
-                        </option>
-                        <?php endif; ?>
-                        <?php endforeach; ?>
-                    </select>
-                    <p class="description">
-                        Mehrfachauswahl: Halten Sie Strg (Windows) oder Cmd (Mac) gedrückt, um mehrere Kurstypen
-                        auszuwählen.
-                    </p>
-                </td>
-            </tr>
-
-            <!-- Locations -->
-            <tr>
-                <th scope="row"><label for="generator-location">Standort</label></th>
-                <td>
-                    <select id="generator-location" name="location">
-                        <option value="">-- Alle Standorte --</option>
-                        <?php foreach ($locations as $location): ?>
-                        <option value="<?php echo esc_attr($location['id']); ?>">
-                            <?php echo esc_html($location['city'] . ' - ' . $location['name']); ?>
-                        </option>
-                        <?php endforeach; ?>
-                    </select>
-                    <p class="description">Optional: Filtern nach einem bestimmten Standort</p>
-                </td>
-            </tr>
-
-            <!-- City -->
-            <tr>
-                <th scope="row"><label for="generator-city">Stadt</label></th>
-                <td>
-                    <input type="text" id="generator-city" name="city" class="regular-text" placeholder="z.B. Berlin">
-                    <p class="description">
-                        Optional: Filtern nach Stadt als Text-String (nur wenn kein Standort ausgewählt).<br>
-                        Die Suche ist case-insensitive und unterstützt Teilstrings (z.B. "Berlin" findet auch
-                        "Berlin-Mitte").<br>
-                        <strong>Hinweis:</strong> Hier wird mit dem Stadtnamen gearbeitet, nicht mit einer ID.
-                    </p>
-                </td>
-            </tr>
-
-            <!-- Categories -->
-            <tr>
-                <th scope="row"><label for="generator-category">Kategorie</label></th>
-                <td>
-                    <select id="generator-category" name="category">
-                        <option value="">-- Alle Kategorien --</option>
-                        <?php foreach ($categories as $category): ?>
-                        <option value="<?php echo esc_attr($category['id']); ?>">
-                            <?php echo esc_html($category['name']); ?>
-                        </option>
-                        <?php endforeach; ?>
-                    </select>
-                    <p class="description">Optional: Filtern nach Kurskategorie</p>
-                </td>
-            </tr>
-
-            <!-- Instructors -->
-            <tr>
-                <th scope="row"><label for="generator-instructor">Kursleiter</label></th>
-                <td>
-                    <select id="generator-instructor" name="instructor">
-                        <option value="">-- Alle Kursleiter --</option>
-                        <?php foreach ($instructors as $instructor): ?>
-                        <option value="<?php echo esc_attr($instructor['id']); ?>">
-                            <?php echo esc_html($instructor['firstname'] . ' ' . $instructor['lastname']); ?>
-                        </option>
-                        <?php endforeach; ?>
-                    </select>
-                    <p class="description">Optional: Filtern nach Kursleiter</p>
-                </td>
-            </tr>
-
-            <!-- Day Filter -->
-            <tr>
-                <th scope="row"><label>Wochentage</label></th>
-                <td>
-                    <fieldset id="day-filter-fieldset">
-                        <label><input type="checkbox" name="days[]" id="day-montag" value="Montag"> Montag</label><br>
-                        <label><input type="checkbox" name="days[]" id="day-dienstag" value="Dienstag">
-                            Dienstag</label><br>
-                        <label><input type="checkbox" name="days[]" id="day-mittwoch" value="Mittwoch">
-                            Mittwoch</label><br>
-                        <label><input type="checkbox" name="days[]" id="day-donnerstag" value="Donnerstag">
-                            Donnerstag</label><br>
-                        <label><input type="checkbox" name="days[]" id="day-freitag" value="Freitag">
-                            Freitag</label><br>
-                        <label><input type="checkbox" name="days[]" id="day-samstag" value="Samstag">
-                            Samstag</label><br>
-                        <label><input type="checkbox" name="days[]" id="day-sonntag" value="Sonntag"> Sonntag</label>
-                    </fieldset>
-                    <p class="description">
-                        Optional: Nur Kurse an bestimmten Wochentagen anzeigen (ODER-Verknüpfung).<br>
-                        Mehrere Tage können ausgewählt werden. Es werden alle Kurse angezeigt, die an einem der
-                        ausgewählten Tage stattfinden.<br>
-                        <strong>Format:</strong> Deutsche Wochentagsnamen (Montag, Dienstag, etc.), komma-separiert.
-                    </p>
-                </td>
-            </tr>
-
-            <!-- Show Filter Menu -->
-            <tr>
-                <th scope="row"><label for="generator-showfiltermenu">Filtermenü anzeigen</label></th>
-                <td>
-                    <label>
-                        <input type="checkbox" id="generator-showfiltermenu" name="showfiltermenu" checked>
-                        Filtermenü im iFrame anzeigen
-                    </label>
-                    <p class="description">Wenn deaktiviert, wird das Filtermenü im iFrame ausgeblendet</p>
-                </td>
-            </tr>
-        </table>
-
-        <p class="submit">
-            <button type="button" id="generate-shortcode-btn" class="button button-primary">
-                Shortcode generieren
-            </button>
-            <button type="button" id="reset-form-btn" class="button" style="margin-left: 10px;">
-                Felder zurücksetzen
-            </button>
-            <button type="button" id="clear-cache-btn" class="button" style="margin-left: 10px;">
-                Cache leeren
-            </button>
-        </p>
-    </form>
-
-    <div id="generated-shortcode-container"
-        style="display: none; margin-top: 20px; padding: 15px; background: #f0f0f1; border-left: 4px solid #2271b1;">
-        <h3>Generierter Shortcode:</h3>
-        <textarea id="generated-shortcode" readonly
-            style="width: 100%; height: 80px; font-family: monospace; font-size: 13px; padding: 10px;"></textarea>
-        <p>
-            <button type="button" id="copy-shortcode-btn" class="button">
-                In Zwischenablage kopieren
-            </button>
-            <span id="copy-success-message" style="color: green; margin-left: 10px; display: none;">✓ Kopiert!</span>
-        </p>
-        <p class="description">
-            Fügen Sie diesen Shortcode in eine beliebige WordPress-Seite oder einen Beitrag ein.<br>
-            <strong>Tipp:</strong> In WordPress Gutenberg wird der Shortcode automatisch als "Shortcode"-Block erkannt.
-            Das ist normal und funktioniert korrekt. Falls Sie ihn als normalen Text benötigen, können Sie den Block-Typ
-            nach dem Einfügen ändern.
-        </p>
-    </div>
-
-    <?php endif; ?>
-</div>
 <?php
 }
 
@@ -1469,12 +1472,12 @@ function kursorganizer_changelog_tab_content()
     // Parse Markdown zu HTML (einfache Konvertierung)
     $html_content = kursorganizer_parse_changelog_markdown($changelog_content);
 ?>
-<div class="card" style="max-width: 1200px;">
-    <h2>Changelog</h2>
-    <div class="kursorganizer-changelog-content" style="line-height: 1.6;">
-        <?php echo wp_kses_post($html_content); ?>
+    <div class="card" style="max-width: 1200px;">
+        <h2>Changelog</h2>
+        <div class="kursorganizer-changelog-content" style="line-height: 1.6;">
+            <?php echo wp_kses_post($html_content); ?>
+        </div>
     </div>
-</div>
 <?php
 }
 
