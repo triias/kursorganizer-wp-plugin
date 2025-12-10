@@ -39,11 +39,16 @@ class KursOrganizer_Plugin_Updater
             return $transient;
         }
 
+        // Check if our plugin is in the checked list
+        if (!isset($transient->checked[$this->plugin])) {
+            return $transient;
+        }
+
         // Hole GitHub Release-Informationen
         $this->get_repository_info();
 
         // Wenn eine neue Version verfügbar ist
-        if ($this->github_response) {
+        if ($this->github_response && isset($this->github_response->tag_name)) {
             // Remove 'v' prefix from tag name if present (e.g., "v1.2.0" -> "1.2.0")
             $github_version = ltrim($this->github_response->tag_name, 'v');
             $current_version = $transient->checked[$this->plugin];
@@ -101,7 +106,10 @@ class KursOrganizer_Plugin_Updater
     private function get_repository_info()
     {
         if (is_null($this->github_response)) {
-            $args = array();
+            $args = array(
+                'timeout' => 15,
+                'sslverify' => true
+            );
             if ($this->authorize_token) {
                 $args['headers']['Authorization'] = "token {$this->authorize_token}";
             }
@@ -112,10 +120,30 @@ class KursOrganizer_Plugin_Updater
             );
 
             if (is_wp_error($response)) {
+                // Log error for debugging (only in debug mode)
+                if (defined('WP_DEBUG') && WP_DEBUG) {
+                    error_log('KursOrganizer Updater Error: ' . $response->get_error_message());
+                }
                 return false;
             }
 
-            $this->github_response = json_decode($response['body']);
+            $response_code = wp_remote_retrieve_response_code($response);
+            if ($response_code !== 200) {
+                if (defined('WP_DEBUG') && WP_DEBUG) {
+                    error_log('KursOrganizer Updater Error: HTTP ' . $response_code);
+                }
+                return false;
+            }
+
+            $this->github_response = json_decode(wp_remote_retrieve_body($response));
+            
+            // Check if response is valid
+            if (!$this->github_response || !isset($this->github_response->tag_name)) {
+                if (defined('WP_DEBUG') && WP_DEBUG) {
+                    error_log('KursOrganizer Updater Error: Invalid response from GitHub API');
+                }
+                return false;
+            }
         }
     }
 
