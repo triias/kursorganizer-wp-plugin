@@ -6,6 +6,11 @@
     max-width: 1200px !important; /* Standard: 800px - hier anpassen */
 }
 
+/* Tabs Navigation auf gleiche Breite wie Cards setzen */
+.wrap .nav-tab-wrapper {
+    max-width: 1200px;
+}
+
 /* Optional: Auch die Breite des gesamten Wraps anpassen */
 .wrap {
     max-width: 1400px; /* Standard: keine Begrenzung */
