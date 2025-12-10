@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.2.1] - 2025-01-XX
+### Fixed
+- JavaScript stellt sicher, dass der Button korrekt aktiviert wird, wenn URL und Organization ID gesetzt sind
+
 ## [1.2.0] - 2025-01-XX
 ### Added
 - Organization ID Validierung zur Sicherstellung, dass nur die korrekte Schwimmschule eingebunden wird

@@ -267,9 +267,20 @@ jQuery(document).ready(function($) {
                         });
                     }
                     
-                    // Disable all form fields except URL and Organization ID
-                    $('#kursorganizer-settings-form input:not([name*="main_app_url"]):not([name*="ko_organization_id"]), #kursorganizer-settings-form select, #kursorganizer-settings-form textarea').prop('disabled', true).css('opacity', '0.6');
-                    $('#kursorganizer-submit-btn').prop('disabled', true);
+                    // Only disable fields if plugin is not configured
+                    // Check if plugin is already configured by checking if URL and Organization ID are filled
+                    var urlValue = $('input[name="kursorganizer_settings[main_app_url]"]').val().trim();
+                    var orgIdValue = $('#ko_organization_id').val().trim();
+                    var isConfigured = urlValue.length > 0 && orgIdValue.length > 0;
+                    
+                    if (!isConfigured) {
+                        // Disable all form fields except URL and Organization ID
+                        $('#kursorganizer-settings-form input:not([name*="main_app_url"]):not([name*="ko_organization_id"]), #kursorganizer-settings-form select, #kursorganizer-settings-form textarea').prop('disabled', true).css('opacity', '0.6');
+                        $('#kursorganizer-submit-btn').prop('disabled', true);
+                    } else {
+                        // Make sure button is enabled if plugin is configured
+                        $('#kursorganizer-submit-btn').prop('disabled', false);
+                    }
                 }
                 btn.prop('disabled', false).text('Verbindung testen');
             },

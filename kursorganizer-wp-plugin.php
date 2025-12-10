@@ -3,7 +3,7 @@
 Plugin Name: KursOrganizer X iFrame
 Plugin URI: https://kursorganizer.com
 Description: Fügt einen Shortcode hinzu, um das WebModul des KO auf der Wordpressseite per shortcode integriert.
-Version: 1.2.0
+Version: 1.2.1
 Author: KursOrganizer GmbH
 Author URI: https://kursorganizer.com
 License: GPL2
@@ -17,7 +17,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('KURSORGANIZER_VERSION', '1.2.0');
+define('KURSORGANIZER_VERSION', '1.2.1');
 define('KURSORGANIZER_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('KURSORGANIZER_PLUGIN_URL', plugin_dir_url(__FILE__));
 
@@ -284,14 +284,8 @@ function kursorganizer_is_configured()
         return false;
     }
 
-    // Check if there's a validation error
-    $settings_errors = get_settings_errors('kursorganizer_messages');
-    foreach ($settings_errors as $error) {
-        if ($error['code'] === 'org_id_mismatch' || $error['code'] === 'org_id_api_error' || $error['code'] === 'org_id_validation_error') {
-            return false;
-        }
-    }
-
+    // If both values are set, consider it configured
+    // Validation errors are checked separately when saving, not here
     return true;
 }
 
@@ -860,11 +854,15 @@ function kursorganizer_settings_tab_content()
     $has_validation_error = false;
     $settings_errors = get_settings_errors('kursorganizer_messages');
     foreach ($settings_errors as $error) {
-        if ($error['code'] === 'org_id_mismatch' || $error['code'] === 'org_id_api_error' || $error['code'] === 'org_id_validation_error') {
+        if ($error['code'] === 'org_id_mismatch' || $error['code'] === 'org_id_api_error' || $error['code'] === 'org_id_validation_error' || $error['code'] === 'url_missing_build') {
             $has_validation_error = true;
             break;
         }
     }
+
+    // Only disable save button if plugin is NOT configured
+    // If plugin is already configured, allow saving other settings (like debug mode, CSS, etc.)
+    $disable_save_button = !$is_configured;
 
     $options = get_option('kursorganizer_settings', array());
     $main_app_url = isset($options['main_app_url']) ? trim($options['main_app_url']) : '';
@@ -944,13 +942,14 @@ function kursorganizer_settings_tab_content()
                 </div>
             <?php endif; ?>
             <p class="submit">
-                <?php submit_button('Speichern', 'primary', 'submit', false, array('id' => 'kursorganizer-submit-btn', 'disabled' => $has_validation_error)); ?>
+                <?php submit_button('Speichern', 'primary', 'submit', false, array('id' => 'kursorganizer-submit-btn', 'disabled' => $disable_save_button)); ?>
             </p>
         </form>
     </div>
-    <?php if ($has_validation_error): ?>
+    <?php if ($has_validation_error && !$is_configured): ?>
         <script>
             jQuery(document).ready(function($) {
+                // Only disable fields if plugin is not configured AND there's a validation error
                 // Disable all form fields except URL and Organization ID
                 $('#kursorganizer-settings-form input:not([name*="main_app_url"]):not([name*="ko_organization_id"]), #kursorganizer-settings-form select, #kursorganizer-settings-form textarea')
                     .prop('disabled', true).css('opacity', '0.6');
@@ -966,6 +965,20 @@ function kursorganizer_settings_tab_content()
             });
         </script>
     <?php endif; ?>
+
+    <script>
+        jQuery(document).ready(function($) {
+            // Ensure save button is enabled if plugin is configured
+            var urlValue = $('input[name="kursorganizer_settings[main_app_url]"]').val().trim();
+            var orgIdValue = $('#ko_organization_id').val().trim();
+            var isConfigured = urlValue.length > 0 && orgIdValue.length > 0;
+
+            if (isConfigured) {
+                // Enable save button if plugin is configured
+                $('#kursorganizer-submit-btn').prop('disabled', false);
+            }
+        });
+    </script>
 <?php
 }
 
