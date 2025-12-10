@@ -1,104 +1,138 @@
-# KursOrganizer X iFrame Integration
+=== KursOrganizer X iFrame ===
 Contributors: KursOrganizer GmbH
-Tags: iframe, courses, organization
+Tags: iframe, courses, kursorganizer, integration
 Requires at least: 5.0
-Tested up to: 8.0
-Stable tag: 1.0
-License: GPL2
+Tested up to: 6.9
+Stable tag: 1.2.2
+Requires PHP: 7.4
+License: GPLv2 or later
+License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Integration des KursOrganizer WebModuls in WordPress Seiten.
+Integrieren Sie Ihre KursOrganizer Web-App nahtlos in Ihre WordPress-Seite per Shortcode.
 
-## Description
-Fügt einen Shortcode hinzu, um das WebModul des KursOrganizer auf der Wordpressseite zu integrieren.
+== Beschreibung ==
 
-## Shortcode Verwendung
-Der Shortcode [kursorganizer_iframe] kann mit folgenden Parametern verwendet werden:
+Das KursOrganizer X Plugin ermöglicht es Ihnen, Ihre KursOrganizer Web-App (Kurssuche, Buchungssystem) direkt in Ihre WordPress-Seiten einzubinden.
 
-* city - Stadt/Ort Filter
-* instructorid - Filtert nach einem bestimmten Kursleiter
-* coursetypeid - Filtert nach einem bestimmten Kurstyp
-* coursetypeids - Filtert nach mehreren Kurstypen (kommagetrennt)
-* locationid - Filtert nach einem bestimmten Standort
-* dayfilter - Filtert nach bestimmten Tagen
-* coursecategoryid - Filtert nach einer bestimmten Kurskategorie
-* showfiltermenu - Zeigt/versteckt das Filtermenü (true/false, Standard: true)
+**Wichtige Informationen für die Installation:**
 
-Beispiel:
-[kursorganizer_iframe city="Berlin" coursetypeid="123" showfiltermenu="false"]
+Für die Einrichtung des Plugins benötigen Sie folgende Informationen von KursOrganizer:
 
-## CSS-Anpassungen
+1. **KursOrganizer Web-App URL**
+   Die URL Ihrer persönlichen KursOrganizer Web-App
+   Format: https://app.ihrefirma.kursorganizer.com/build/
 
-Das Plugin unterstützt benutzerdefinierte CSS-Anpassungen für den Inhalt des iFrames über externe CSS-Dateien.
+2. **KursOrganizer Organization ID**
+   Ihre eindeutige Organisation-ID (UUID-Format)
+   Beispiel: 123e4567-e89b-12d3-a456-426614174000
 
-### Externe CSS-Datei
+**Falls Ihnen diese Werte nicht bekannt sind, wenden Sie sich bitte an:**
+support@kursorganizer.com
 
-Geben Sie die vollständige URL zu einer externen CSS-Datei im Feld "CSS-Datei URL" in den Plugin-Einstellungen ein. Die CSS-Datei muss öffentlich zugänglich sein und CORS-Header erlauben.
+== Installation ==
 
-**Beispiel URL:**
+**1. Plugin installieren**
 
-```
-https://www.fitimwasser.de/wp-content/themes/theme-name/custom-kursorganizer.css
-```
+   a) Melden Sie sich in Ihrem WordPress-Admin-Bereich an
+   b) Gehen Sie zu: Plugins → Plugin hochladen
+   c) Klicken Sie auf "Datei auswählen" und wählen Sie die ZIP-Datei aus
+   d) Klicken Sie auf "Jetzt installieren"
+   e) Klicken Sie auf "Plugin aktivieren"
 
-### Wichtige Hinweise
+**2. Plugin konfigurieren**
 
-* **CSS-Spezifität:** Verwenden Sie ausreichend spezifische Selektoren, um die Standard-Styles zu überschreiben
-* **Ant Design Klassen:** Die App verwendet Ant Design. Sie können Ant Design Komponenten-Klassen direkt stylen (z.B. `.ant-btn-primary`, `.ant-card`, `.ant-table`)
-* **Externe CSS-Dateien:** Müssen öffentlich zugänglich sein und CORS-Header erlauben
-* **Performance:** Große CSS-Dateien können die Ladezeit beeinträchtigen
+Nach der Aktivierung werden Sie zum KursOrganizer X Einstellungsbereich weitergeleitet:
 
-### CSS-Beispiele
+   a) Geben Sie Ihre **KursOrganizer Web-App URL** ein
+      (z.B. https://app.ihrefirma.kursorganizer.com/build/)
+   
+   b) Geben Sie Ihre **KursOrganizer Organization ID** ein
+      (Diese ID erhalten Sie von KursOrganizer oder support@kursorganizer.com)
+   
+   c) Klicken Sie auf **"Verbindung testen"** um zu prüfen, ob URL und Organization ID zusammenpassen
+   
+   d) Wenn der Test erfolgreich ist, klicken Sie auf **"Speichern"**
 
-**Schriftarten anpassen:**
+**3. Shortcode verwenden**
 
-```css
-body {
-    font-family: 'Arial', 'Helvetica Neue', sans-serif !important;
-    font-size: 16px;
-}
-/* Alle Elemente mit Schriftart versehen */
-* {
-    font-family: 'Arial', 'Helvetica Neue', sans-serif !important;
-}
-```
+Nach erfolgreicher Konfiguration können Sie den Shortcode verwenden:
 
-**Hinweis:** Verwenden Sie `!important`, um sicherzustellen, dass die Schriftart auch auf alle Ant Design Komponenten angewendet wird.
+   a) Erstellen oder bearbeiten Sie eine WordPress-Seite oder einen Beitrag
+   b) Fügen Sie den Shortcode ein: [kursorganizer_iframe]
+   c) Veröffentlichen Sie die Seite
 
-**Farben anpassen:**
+Alternativ können Sie den **Shortcode Generator** im Plugin verwenden:
+   - Gehen Sie zu: KursOrganizer X → Shortcode Generator
+   - Wählen Sie Filter (z.B. Standort, Kurstyp) aus
+   - Klicken Sie auf "Shortcode generieren"
+   - Kopieren Sie den generierten Shortcode
 
-```css
-.ant-btn-primary {
-    background-color: #your-color;
-    border-color: #your-color;
-}
-```
+== Häufig verwendete Shortcodes ==
 
-**Abstände anpassen:**
+**Alle Kurse anzeigen:**
+[kursorganizer_iframe]
 
-```css
-.ant-card {
-    margin-bottom: 20px;
-    padding: 15px;
-}
-```
+**Kurse einer bestimmten Stadt:**
+[kursorganizer_iframe city="Berlin"]
 
-## Installation in WordPress:
-- Download the latest release ZIP from this GitHub repository
+**Kurse eines bestimmten Standorts:**
+[kursorganizer_iframe locationid="standort-id"]
 
-### In WordPress admin panel:
+**Bestimmte Kurstypen:**
+[kursorganizer_iframe coursetypeids="id1,id2,id3"]
 
-- Go to Plugins → Add New → Upload Plugin
-- Choose the downloaded ZIP file
-- Click "Install Now" and then "Activate"
+Weitere Beispiele und Optionen finden Sie im Tab "Anleitungen" im Plugin.
 
-### Configure the plugin:
+== Wichtige Hinweise ==
 
-- Go to "KursOrganizer X" in the WordPress admin menu
-- Enter your KursOrganizer Web-App URL
-- Add your GitHub token for automatic updates (optional)
-- Save settings
-- Use the shortcode in your pages/posts:
+* **Sicherheit**: URL und Organization ID müssen übereinstimmen, sonst funktioniert das Plugin nicht
+* **Erste Einrichtung**: Beim ersten Öffnen des Plugins werden Sie Schritt für Schritt durch die Konfiguration geführt
+* **Test-Funktion**: Nutzen Sie den "Verbindung testen" Button, um Ihre Eingaben zu überprüfen
+* **Support**: Bei Fragen oder Problemen wenden Sie sich an support@kursorganizer.com
 
-## Changelog
-= 1.0 =
-* Initial release
+== Changelog ==
+
+= 1.2.2 =
+* Visuelle Anpassungen für die Einstellungsseite
+* Tab-Navigation hat jetzt die gleiche Breite wie die Content-Panels
+
+= 1.2.1 =
+* JavaScript stellt sicher, dass der Speichern-Button korrekt aktiviert wird
+
+= 1.2.0 =
+* Sicherheitsvalidierung mit Organization ID
+* Initial Setup Flow mit Willkommensnachricht
+* Test Connection Button
+* Automatisches Hinzufügen von /build bei URLs
+* Verbesserte Fehlerbehandlung
+
+= 1.1.0 =
+* Changelog-Tab zur Einstellungsseite hinzugefügt
+* Neuer Tab "Anleitungen" mit Shortcode-Beispielen
+* Verbesserte Navigation
+
+= 1.0.5 =
+* CSS-Anpassungen über externe CSS-Datei-URL
+* Verbesserte CSS-Konfiguration
+
+= 1.0.4 =
+* Mehrfache Verwendung des Shortcodes auf einer Seite funktioniert korrekt
+* iFrame-Resizing verbessert
+
+= 1.0.0 =
+* Erste Veröffentlichung
+
+== Support ==
+
+Bei Fragen oder Problemen kontaktieren Sie uns:
+* E-Mail: support@kursorganizer.com
+* Website: https://kursorganizer.com
+
+== Screenshots ==
+
+Das Plugin bietet:
+* Einfache Einrichtung mit Schritt-für-Schritt Anleitung
+* Shortcode Generator für individuelle Konfigurationen
+* Detaillierte Anleitungen und Beispiele
+* Test-Funktion zur Validierung der Einstellungen
+
