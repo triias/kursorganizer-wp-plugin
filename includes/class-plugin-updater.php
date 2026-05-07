@@ -149,16 +149,27 @@ class KursOrganizer_Plugin_Updater
 
     private function get_changelog()
     {
-        $response = wp_remote_get(
-            "{$this->github_url}/raw/master/CHANGELOG.md",
-            array('headers' => array('Authorization' => "token {$this->authorize_token}"))
-        );
-
-        if (is_wp_error($response)) {
-            return 'Keine Änderungshistorie verfügbar.';
+        // GitHub-API: bei Releases gibt es body als Markdown direkt mit
+        if ($this->github_response && !empty($this->github_response->body)) {
+            return $this->github_response->body;
         }
 
-        return $response['body'];
+        // Fallback: CHANGELOG.md vom Default-Branch laden (main, mit master als Fallback).
+        // Repo-Pfad aus der API-URL extrahieren, damit ein Repo-Rename keinen weiteren Patch erfordert.
+        $args = array();
+        if ($this->authorize_token) {
+            $args['headers']['Authorization'] = "token {$this->authorize_token}";
+        }
+
+        $raw_base = preg_replace('#^https://api\.github\.com/repos/#', 'https://raw.githubusercontent.com/', $this->github_url);
+        foreach (['main', 'master'] as $branch) {
+            $response = wp_remote_get("{$raw_base}/{$branch}/CHANGELOG.md", $args);
+            if (!is_wp_error($response) && wp_remote_retrieve_response_code($response) === 200) {
+                return wp_remote_retrieve_body($response);
+            }
+        }
+
+        return 'Keine Änderungshistorie verfügbar.';
     }
 
     public function after_install($response, $hook_extra, $result)

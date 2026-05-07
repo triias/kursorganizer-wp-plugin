@@ -1,0 +1,14 @@
+{
+  "name": "kursorganizer-wp-plugin",
+  "version": "1.2.3",
+  "private": true,
+  "description": "Release-Tooling fuer das KursOrganizer X WordPress-Plugin",
+  "scripts": {
+    "release:patch": "npm version patch -m \"Release v%s\"",
+    "release:minor": "npm version minor -m \"Release v%s\"",
+    "release:major": "npm version major -m \"Release v%s\"",
+    "preversion": "node scripts/check-changelog.mjs",
+    "version": "node scripts/sync-version.mjs && git add kursorganizer-wp-plugin.php README.md",
+    "postversion": "git push origin HEAD && git push origin --tags && echo '\\n✓ Tag gepusht. GitHub Actions erstellt jetzt das Release: https://github.com/triias/kursorganizer-wp-plugin/actions'"
+  }
+}

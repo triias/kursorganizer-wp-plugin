@@ -1,0 +1,62 @@
+name: Release Pipeline
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract version from tag
+        id: version
+        env:
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          # ref_name ist z. B. "v1.2.3" — nur das fuehrende v entfernen
+          VERSION="${REF_NAME#v}"
+          # Defensive: nur erlaubte Zeichen aus SemVer-Tags durchlassen
+          if ! echo "$VERSION" | grep -Eq '^[0-9A-Za-z.+-]+$'; then
+            echo "::error::Ungueltiges Tag-Format: $REF_NAME"
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Verify plugin version matches tag
+        env:
+          TAG_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          PLUGIN_VERSION=$(grep -E "^Version:\s*" kursorganizer-wp-plugin.php | sed -E 's/^Version:\s*//' | tr -d '[:space:]')
+          if [ "$PLUGIN_VERSION" != "$TAG_VERSION" ]; then
+            echo "::error::Tag-Version v$TAG_VERSION stimmt nicht mit Plugin-Header-Version $PLUGIN_VERSION ueberein"
+            exit 1
+          fi
+
+      - name: Extract changelog section for this version
+        env:
+          TAG_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          awk -v v="$TAG_VERSION" '
+            $0 ~ "^## \\[" v "\\]" { p=1; print; next }
+            p && /^## \[/ { exit }
+            p { print }
+          ' CHANGELOG.md > .release-notes.md
+          if [ ! -s .release-notes.md ]; then
+            echo "Keine Changelog-Section fuer v$TAG_VERSION gefunden." > .release-notes.md
+          fi
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: v${{ steps.version.outputs.version }}
+          body_path: .release-notes.md
+          draft: false
+          prerelease: false
