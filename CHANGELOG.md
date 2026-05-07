@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.2.5] - 2026-05-07
+### Fixed
+- Fehler „Aktualisierung fehlgeschlagen: Es wurde kein Plugin angegeben" beim Klick auf den „Jetzt aktualisieren"-Button im Plugin-Information-Popup behoben. Der Updater fuellt das WP-Update-Transient jetzt mit den Pflichtfeldern `plugin` (Plugin-Datei-Pfad) und `slug` (Verzeichnisname) statt nur `slug` (Pfad), damit WordPress' AJAX-Update-Endpoint die richtige Plugin-Datei findet.
+- `plugin_popup()` akzeptiert jetzt sowohl den Verzeichnis-Slug als auch den vollen Plugin-Pfad als `args->slug`, damit Updates aus aelteren Cache-States robust durchlaufen.
+
 ## [1.2.4] - 2026-05-07
 ### Fixed
 - PHP-Notices `Undefined property: stdClass::$description` im Plugin-Information-Popup behoben (GitHub-Releases-API liefert `body`, nicht `description`).

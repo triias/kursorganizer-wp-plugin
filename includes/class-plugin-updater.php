@@ -54,12 +54,24 @@ class KursOrganizer_Plugin_Updater
             $current_version = $transient->checked[$this->plugin];
 
             if (version_compare($github_version, $current_version, '>')) {
+                // Pflichtfelder fuer WordPress' AJAX-Update-Endpoint:
+                //   plugin: Pfad zur Plugin-Datei (z. B. "kursorganizer-wp-plugin/kursorganizer-wp-plugin.php")
+                //   slug:   Verzeichnisname (NICHT der Pfad!) — sonst schlaegt der "Jetzt aktualisieren"-Button im
+                //           Plugin-Information-Popup mit "Es wurde kein Plugin angegeben" fehl.
+                $plugin_dir_slug = dirname($this->plugin);
                 $plugin = array(
-                    'url'         => $this->github_response->html_url,
-                    'slug'        => $this->basename,
-                    'package'     => $this->github_response->zipball_url,
+                    'id'          => "github.com/{$plugin_dir_slug}",
+                    'plugin'      => $this->plugin,
+                    'slug'        => $plugin_dir_slug,
                     'new_version' => $github_version,
+                    'url'         => $this->github_response->html_url,
+                    'package'     => $this->github_response->zipball_url,
                     'icons'       => $this->get_icons(),
+                    'banners'     => array(),
+                    'banners_rtl' => array(),
+                    'tested'      => '',
+                    'requires_php' => '',
+                    'compatibility' => new \stdClass(),
                 );
                 $transient->response[$this->plugin] = (object) $plugin;
             }
@@ -74,7 +86,10 @@ class KursOrganizer_Plugin_Updater
             return $result;
         }
 
-        if (empty($args->slug) || $args->slug !== $this->basename) {
+        // Akzeptiere sowohl den Verzeichnis-Slug als auch den vollen Plugin-Pfad,
+        // damit Aufrufe aus alten Cache-States (oder anderer Code, der den Pfad sendet) sauber funktionieren.
+        $plugin_dir_slug = dirname($this->plugin);
+        if (empty($args->slug) || ($args->slug !== $plugin_dir_slug && $args->slug !== $this->basename)) {
             return $result;
         }
 
@@ -91,7 +106,7 @@ class KursOrganizer_Plugin_Updater
 
         $plugin = array(
             'name'              => isset($plugin_data['Name']) ? $plugin_data['Name'] : 'KursOrganizer X iFrame',
-            'slug'              => $this->basename,
+            'slug'              => $plugin_dir_slug,
             'version'           => $github_version,
             'author'            => isset($plugin_data['AuthorName']) ? $plugin_data['AuthorName'] : 'KursOrganizer GmbH',
             'author_profile'    => 'https://github.com/triias',
