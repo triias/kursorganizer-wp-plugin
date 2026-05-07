@@ -2,8 +2,11 @@
 /*
 Plugin Name: KursOrganizer X iFrame
 Plugin URI: https://kursorganizer.com
-Description: Fügt einen Shortcode hinzu, um das WebModul des KO auf der Wordpressseite per shortcode integriert.
+Description: Fügt einen Shortcode hinzu, um das WebModul des KursOrganizers per [kursorganizer_iframe] in eine WordPress-Seite einzubetten.
 Version: 1.2.3
+Requires at least: 5.0
+Tested up to: 6.9
+Requires PHP: 7.4
 Author: KursOrganizer GmbH
 Author URI: https://kursorganizer.com
 License: GPL2

@@ -52,13 +52,14 @@ class KursOrganizer_Plugin_Updater
             // Remove 'v' prefix from tag name if present (e.g., "v1.2.0" -> "1.2.0")
             $github_version = ltrim($this->github_response->tag_name, 'v');
             $current_version = $transient->checked[$this->plugin];
-            
+
             if (version_compare($github_version, $current_version, '>')) {
                 $plugin = array(
-                    'url' => $this->plugin,
-                    'slug' => $this->basename,
-                    'package' => $this->github_response->zipball_url,
-                    'new_version' => $github_version
+                    'url'         => $this->github_response->html_url,
+                    'slug'        => $this->basename,
+                    'package'     => $this->github_response->zipball_url,
+                    'new_version' => $github_version,
+                    'icons'       => $this->get_icons(),
                 );
                 $transient->response[$this->plugin] = (object) $plugin;
             }
@@ -73,34 +74,59 @@ class KursOrganizer_Plugin_Updater
             return $result;
         }
 
-        if (!empty($args->slug)) {
-            if ($args->slug == $this->basename) {
-                $this->get_repository_info();
-
-                // Remove 'v' prefix from tag name if present
-                $github_version = ltrim($this->github_response->tag_name, 'v');
-                
-                $plugin = array(
-                    'name'              => $this->plugin,
-                    'slug'              => $this->basename,
-                    'version'           => $github_version,
-                    'author'            => 'KursOrganizer GmbH',
-                    'author_profile'    => 'https://github.com/triias',
-                    'last_updated'      => $this->github_response->published_at,
-                    'homepage'          => $this->github_response->html_url,
-                    'short_description' => $this->github_response->description,
-                    'sections'          => array(
-                        'Description'   => $this->github_response->description,
-                        'Updates'       => $this->get_changelog(),
-                    ),
-                    'download_link'     => $this->github_response->zipball_url
-                );
-
-                return (object) $plugin;
-            }
+        if (empty($args->slug) || $args->slug !== $this->basename) {
+            return $result;
         }
 
-        return $result;
+        $this->get_repository_info();
+
+        if (!$this->github_response || !isset($this->github_response->tag_name)) {
+            return $result;
+        }
+
+        $github_version = ltrim($this->github_response->tag_name, 'v');
+        $plugin_data    = function_exists('get_plugin_data') ? get_plugin_data($this->file, false, false) : array();
+
+        $description = isset($plugin_data['Description']) ? wp_strip_all_tags($plugin_data['Description']) : '';
+
+        $plugin = array(
+            'name'              => isset($plugin_data['Name']) ? $plugin_data['Name'] : 'KursOrganizer X iFrame',
+            'slug'              => $this->basename,
+            'version'           => $github_version,
+            'author'            => isset($plugin_data['AuthorName']) ? $plugin_data['AuthorName'] : 'KursOrganizer GmbH',
+            'author_profile'    => 'https://github.com/triias',
+            'last_updated'      => $this->github_response->published_at,
+            'homepage'          => isset($plugin_data['PluginURI']) && $plugin_data['PluginURI'] ? $plugin_data['PluginURI'] : $this->github_response->html_url,
+            'requires'          => isset($plugin_data['RequiresWP']) ? $plugin_data['RequiresWP'] : '',
+            'requires_php'      => isset($plugin_data['RequiresPHP']) ? $plugin_data['RequiresPHP'] : '',
+            'short_description' => $description,
+            'sections'          => array(
+                'description' => $description ? wpautop($description) : '<p>KursOrganizer X iFrame Plugin.</p>',
+                'changelog'   => $this->get_changelog(),
+            ),
+            'icons'             => $this->get_icons(),
+            'download_link'     => $this->github_response->zipball_url,
+        );
+
+        return (object) $plugin;
+    }
+
+    /**
+     * Liefert Icon-URLs fuer das Plugin (WordPress nutzt diese in der Update-Liste
+     * und im Plugin-Information-Popup).
+     */
+    private function get_icons()
+    {
+        $raw_base = preg_replace(
+            '#^https://api\.github\.com/repos/#',
+            'https://raw.githubusercontent.com/',
+            $this->github_url
+        );
+        $icon_base = "{$raw_base}/main/assets/icons";
+        return array(
+            'svg'     => "{$icon_base}/icon.svg",
+            'default' => "{$icon_base}/icon.svg",
+        );
     }
 
     private function get_repository_info()

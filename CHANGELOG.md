@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.2.4] - 2026-05-07
+### Fixed
+- PHP-Notices `Undefined property: stdClass::$description` im Plugin-Information-Popup behoben (GitHub-Releases-API liefert `body`, nicht `description`).
+- Update-Popup zeigt jetzt die echte Plugin-Beschreibung aus dem Plugin-Header statt einer leeren Section.
+- Changelog-Tab im Update-Popup zeigt jetzt die Release-Notes aus dem GitHub-Release statt einer 404-Antwort.
+
+### Added
+- Plugin-Icon (KursOrganizer-Logo auf Markenfarbe) in Update-Liste und Plugin-Information-Popup. Wird via `assets/icons/icon.svg` ausgeliefert.
+- Plugin-Header ergänzt um `Requires at least`, `Requires PHP` und `Tested up to`, damit WordPress Kompatibilität korrekt anzeigt.
+- Beschreibungstext im Plugin-Header sprachlich korrigiert.
+
 ## [1.2.3] - 2026-05-07
 ### Fixed
 - iFrame wird auf WordPress-Seiten mit boldthemes-basierten Themes (z. B. Industrial, Construction, Architect) nicht mehr fälschlicherweise auf 16:9-Seitenverhältnis gestaucht. Das `boldthemes_video_resize()` aus dem Theme-Framework hat den iFrameResizer bei jedem `window.resize`-Event überschrieben — sichtbar besonders auf iOS beim Scrollen (URL-Leiste klappt ein/aus) und am Desktop beim Ändern der Fensterbreite.
