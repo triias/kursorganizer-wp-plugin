@@ -15,13 +15,24 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), "..")
 const pkg = JSON.parse(readFileSync(resolve(root, "package.json"), "utf8"))
 const current = pkg.version
 
-// npm_config_argv enthaelt das urspruengliche CLI-Argument (z. B. "patch" / "minor" / "1.2.5")
+// Bump-Typ bestimmen: zuerst aus npm_lifecycle_event (release:patch / release:minor / release:major),
+// dann aus npm_config_argv (faellt bei npm v9+ leer aus), dann aus process.argv als Fallback.
 let bumpArg = ""
-try {
-    const argv = JSON.parse(process.env.npm_config_argv || "{}")
-    bumpArg = (argv.original || []).find((a) => /^(patch|minor|major|\d+\.\d+\.\d+)$/.test(a)) || ""
-} catch {
-    // ignore
+const lifecycle = process.env.npm_lifecycle_event || ""
+const lifecycleMatch = lifecycle.match(/^release:(patch|minor|major)$/)
+if (lifecycleMatch) {
+    bumpArg = lifecycleMatch[1]
+}
+if (!bumpArg) {
+    try {
+        const argv = JSON.parse(process.env.npm_config_argv || "{}")
+        bumpArg = (argv.original || []).find((a) => /^(patch|minor|major|\d+\.\d+\.\d+)$/.test(a)) || ""
+    } catch {
+        // ignore
+    }
+}
+if (!bumpArg) {
+    bumpArg = process.argv.slice(2).find((a) => /^(patch|minor|major|\d+\.\d+\.\d+)$/.test(a)) || ""
 }
 
 if (!bumpArg) {
