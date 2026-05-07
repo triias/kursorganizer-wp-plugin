@@ -1713,8 +1713,21 @@ function kursOrganizer_iframe_shortcode($atts)
     // Das erlaubt dem iframe, die eingestellte maximale Breite anzunehmen
     $iframe_style = 'width: 1px; min-width: 100%; max-width: ' . esc_attr($max_width) . ';';
 
-    // HTML für das iFrame mit eindeutiger ID und gemeinsamer CSS-Klasse
-    $iframe_html = '<iframe id="' . $unique_id . '" class="kursorganizer-iframe" frameborder="0" style="' . $iframe_style . '" src="' . $iframe_src . '"></iframe>';
+    // CSS-Klassen am iFrame:
+    //   - kursorganizer-iframe:  Haupt-Selector für iFrameResizer-Init
+    //   - bt_skip_resize:        Offizielle Opt-out-Marker-Klasse fuer boldthemes-basierte Themes
+    //                            (Industrial, Construction, Architect, ...). Diese Themes erzwingen
+    //                            sonst per boldthemes_video_resize() ein 16:9-Seitenverhaeltnis auf
+    //                            allen iFrames und ueberschreiben damit unsere iFrameResizer-Hoehe.
+    //                            Auf Themes ohne diesen Code: reine Marker-Klasse, kein Effekt.
+    // Weitere Theme-Compat-Klassen koennen hier ergaenzt werden, wenn neue Konflikte auftauchen.
+    $iframe_classes = apply_filters('kursorganizer_iframe_classes', [
+        'kursorganizer-iframe',
+        'bt_skip_resize',
+    ]);
+    $iframe_class_attr = esc_attr(implode(' ', array_map('sanitize_html_class', $iframe_classes)));
+
+    $iframe_html = '<iframe id="' . $unique_id . '" class="' . $iframe_class_attr . '" frameborder="0" style="' . $iframe_style . '" src="' . $iframe_src . '"></iframe>';
 
     // Optional: Platzhalter für Callback-Informationen (nur im Debug-Modus)
     $callback_html = $debug_mode ? '<p id="kursorganizer-callback-' . $iframe_counter . '"></p>' : '';
