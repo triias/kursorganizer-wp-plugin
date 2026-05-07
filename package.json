@@ -1,6 +1,6 @@
 {
   "name": "kursorganizer-wp-plugin",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "private": true,
   "description": "Release-Tooling fuer das KursOrganizer X WordPress-Plugin",
   "scripts": {
