@@ -3,7 +3,7 @@ Contributors: KursOrganizer GmbH
 Tags: iframe, courses, kursorganizer, integration
 Requires at least: 5.0
 Tested up to: 6.9
-Stable tag: 1.2.2
+Stable tag: 1.2.3
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -91,6 +91,11 @@ Weitere Beispiele und Optionen finden Sie im Tab "Anleitungen" im Plugin.
 * **Support**: Bei Fragen oder Problemen wenden Sie sich an support@kursorganizer.com
 
 == Changelog ==
+
+= 1.2.3 =
+* Fix: iFrame wird auf WordPress-Seiten mit boldthemes-basierten Themes (Industrial, Construction, Architect) nicht mehr fälschlicherweise auf 16:9-Seitenverhältnis gestaucht (sichtbar besonders auf iOS beim Scrollen und am Desktop beim Resizen)
+* Offizielle boldthemes-Opt-out-Klasse `bt_skip_resize` wird automatisch an das iFrame angehängt; auf anderen Themes wirkungslos
+* Neuer WordPress-Filter `kursorganizer_iframe_classes` zum Anpassen der iFrame-Klassenliste
 
 = 1.2.2 =
 * Visuelle Anpassungen für die Einstellungsseite

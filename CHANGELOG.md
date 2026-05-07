@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.2.3] - 2026-05-07
+### Fixed
+- iFrame wird auf WordPress-Seiten mit boldthemes-basierten Themes (z. B. Industrial, Construction, Architect) nicht mehr fälschlicherweise auf 16:9-Seitenverhältnis gestaucht. Das `boldthemes_video_resize()` aus dem Theme-Framework hat den iFrameResizer bei jedem `window.resize`-Event überschrieben — sichtbar besonders auf iOS beim Scrollen (URL-Leiste klappt ein/aus) und am Desktop beim Ändern der Fensterbreite.
+
+### Added
+- Offizielle boldthemes-Opt-out-Klasse `bt_skip_resize` wird automatisch an das generierte iFrame angehängt. Auf Themes ohne diesen Mechanismus ist die Klasse wirkungslos.
+- Neuer WordPress-Filter `kursorganizer_iframe_classes` zum Anpassen der iFrame-Klassenliste (z. B. zum Entfernen von `bt_skip_resize` oder Hinzufügen weiterer Theme-Compat-Klassen).
+
 ## [1.2.2] - 2025-12-10
 ### Changed
 - Visuelle Anpassungen für die Einstellungsseite
