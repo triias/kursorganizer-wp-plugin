@@ -3,7 +3,7 @@ Contributors: KursOrganizer GmbH
 Tags: iframe, courses, kursorganizer, integration
 Requires at least: 5.0
 Tested up to: 7.0
-Stable tag: 1.2.7
+Stable tag: 1.2.8
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -69,8 +69,17 @@ Alternativ können Sie den **Shortcode Generator** im Plugin verwenden:
 
 == Häufig verwendete Shortcodes ==
 
-**Alle Kurse anzeigen:**
+**Standardansicht des Web-Moduls anzeigen:**
 [kursorganizer_iframe]
+
+**Kurse und Interessentenlisten anzeigen:**
+[kursorganizer_iframe listtype="all"]
+
+**Nur Interessentenlisten anzeigen:**
+[kursorganizer_iframe listtype="interest"]
+
+**Nur Kurse anzeigen:**
+[kursorganizer_iframe listtype="courses"]
 
 **Kurse einer bestimmten Stadt:**
 [kursorganizer_iframe city="Berlin"]
@@ -91,6 +100,11 @@ Weitere Beispiele und Optionen finden Sie im Tab "Anleitungen" im Plugin.
 * **Support**: Bei Fragen oder Problemen wenden Sie sich an support@kursorganizer.com
 
 == Changelog ==
+
+= 1.2.8 =
+* Auswahl zwischen Kursen und Interessentenlisten per `listtype`-Shortcode-Attribut
+* Angebotsauswahl im Shortcode-Generator ergänzt
+* Ohne `listtype` gilt weiterhin die Mandanteneinstellung des Web-Moduls
 
 = 1.2.7 =
 * Zu spaete Updater-Registrierung fuer Admin- und Cron-Pruefungen behoben

@@ -3,7 +3,7 @@
 Plugin Name: KursOrganizer X iFrame
 Plugin URI: https://kursorganizer.com
 Description: Fügt einen Shortcode hinzu, um das WebModul des KursOrganizers per [kursorganizer_iframe] in eine WordPress-Seite einzubetten.
-Version: 1.2.7
+Version: 1.2.8
 Requires at least: 5.0
 Tested up to: 7.0
 Requires PHP: 7.4
@@ -20,7 +20,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('KURSORGANIZER_VERSION', '1.2.7');
+define('KURSORGANIZER_VERSION', '1.2.8');
 define('KURSORGANIZER_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('KURSORGANIZER_PLUGIN_URL', plugin_dir_url(__FILE__));
 
@@ -918,6 +918,15 @@ function kursorganizer_anleitungen_tab_content()
         <p>Zeigt Kurse einer bestimmten Kategorie:</p>
         <code>[kursorganizer_iframe coursecategoryid="kategorie-id"]</code>
 
+        <h3>Kurse und Interessentenlisten</h3>
+        <p>Steuert, welche Angebote angezeigt werden:</p>
+        <code>[kursorganizer_iframe listtype="all"]</code>
+        <p class="description">
+            Zulässige Werte: <code>all</code> für Kurse und Interessentenlisten,
+            <code>interest</code> nur für Interessentenlisten und <code>courses</code> nur für Kurse.
+            Ohne <code>listtype</code> gilt die im KursOrganizer Web Modul hinterlegte Mandanteneinstellung.
+        </p>
+
         <h3>Ohne Filtermenü</h3>
         <p>Zeigt Kurse ohne das Filtermenü an:</p>
         <code>[kursorganizer_iframe showfiltermenu="false"]</code>
@@ -1228,6 +1237,22 @@ query GetCompany {
                         </td>
                     </tr>
 
+                    <!-- Offer Type -->
+                    <tr>
+                        <th scope="row"><label for="generator-listtype">Angebote anzeigen</label></th>
+                        <td>
+                            <select id="generator-listtype" name="listtype">
+                                <option value="">-- Standard des Web Moduls --</option>
+                                <option value="all">Kurse und Interessentenlisten</option>
+                                <option value="interest">Nur Interessentenlisten</option>
+                                <option value="courses">Nur Kurse</option>
+                            </select>
+                            <p class="description">
+                                Ohne explizite Auswahl gilt die im KursOrganizer Web Modul hinterlegte Mandanteneinstellung.
+                            </p>
+                        </td>
+                    </tr>
+
                     <!-- Show Filter Menu -->
                     <tr>
                         <th scope="row"><label for="generator-showfiltermenu">Filtermenü anzeigen</label></th>
@@ -1419,6 +1444,7 @@ function kursOrganizer_iframe_shortcode($atts)
             'locationid' => '',
             'dayfilter' => '',
             'coursecategoryid' => '',
+            'listtype' => '',
             'showfiltermenu' => 'true',
         ),
         $atts,

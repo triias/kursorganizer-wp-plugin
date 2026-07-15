@@ -57,6 +57,12 @@ jQuery(document).ready(function($) {
             params.push('dayfilter="' + selectedDays.join(',') + '"');
         }
 
+        // Get offer type. Empty keeps the tenant default from the web module.
+        var listType = $('#generator-listtype').val();
+        if (listType) {
+            params.push('listtype="' + listType + '"');
+        }
+
         // Get show filter menu setting
         var showFilterMenu = $('#generator-showfiltermenu').is(':checked');
         if (!showFilterMenu) {
@@ -174,6 +180,9 @@ jQuery(document).ready(function($) {
         
         // Reset day checkboxes
         $('input[name="days[]"]').prop('checked', false);
+
+        // Reset offer type to the web module tenant default
+        $('#generator-listtype').val('');
         
         // Reset show filter menu checkbox
         $('#generator-showfiltermenu').prop('checked', true);
