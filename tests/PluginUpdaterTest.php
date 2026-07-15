@@ -11,6 +11,7 @@ final class PluginUpdaterTest extends TestCase
         $GLOBALS['ko_test_filters'] = array();
         $GLOBALS['ko_test_plugin_active'] = false;
         $GLOBALS['ko_test_activated_plugins'] = array();
+        $GLOBALS['ko_test_site_transients'] = array();
         unset($GLOBALS['wp_filesystem']);
     }
 
@@ -96,6 +97,88 @@ final class PluginUpdaterTest extends TestCase
         $mainFile = file_get_contents(dirname(__DIR__) . '/kursorganizer-wp-plugin.php');
         self::assertStringContainsString("kursorganizer_init_updater();", $mainFile);
         self::assertStringNotContainsString("add_action('admin_init', 'kursorganizer_init_updater')", $mainFile);
+    }
+
+    public function testPluginPopupAcceptsHistoricalSlugWhenInstalledCanonically(): void
+    {
+        $GLOBALS['ko_test_remote_response'] = array(
+            'response' => array('code' => 200),
+            'body' => json_encode(array(
+                'tag_name' => 'v1.2.9',
+                'html_url' => 'https://github.com/triias/kursorganizer-wp-plugin/releases/tag/v1.2.9',
+                'zipball_url' => 'https://github.com/source.zip',
+                'body' => 'Popup-Fix',
+                'assets' => array(array(
+                    'name' => 'kursorganizer-wp-plugin.zip',
+                    'browser_download_url' => 'https://github.com/release/plugin.zip',
+                )),
+            )),
+        );
+
+        $updater = new KursOrganizer_Plugin_Updater(array(
+            'slug' => '/plugins/kursorganizer-wp-plugin/kursorganizer-wp-plugin.php',
+            'api_url' => 'https://api.github.com/repos/triias/kursorganizer-wp-plugin',
+        ));
+
+        $result = $updater->plugin_popup(
+            false,
+            'plugin_information',
+            (object) array('slug' => 'kursorganizer-wp-plugin-main')
+        );
+
+        self::assertIsObject($result);
+        self::assertSame('kursorganizer-wp-plugin', $result->slug);
+        self::assertSame('1.2.9', $result->version);
+        self::assertSame('https://github.com/release/plugin.zip', $result->download_link);
+    }
+
+    public function testPluginPopupUsesCachedUpdateWhenGithubIsTemporarilyUnavailable(): void
+    {
+        $plugin = 'kursorganizer-wp-plugin-main/kursorganizer-wp-plugin.php';
+        $GLOBALS['ko_test_remote_response'] = new WP_Error('timeout', 'GitHub timeout');
+        $GLOBALS['ko_test_site_transients']['update_plugins'] = (object) array(
+            'response' => array(
+                $plugin => (object) array(
+                    'new_version' => '1.2.9',
+                    'url' => 'https://github.com/triias/kursorganizer-wp-plugin/releases/tag/v1.2.9',
+                    'package' => 'https://github.com/release/plugin.zip',
+                ),
+            ),
+        );
+
+        $updater = new KursOrganizer_Plugin_Updater(array(
+            'slug' => '/plugins/' . $plugin,
+            'api_url' => 'https://api.github.com/repos/triias/kursorganizer-wp-plugin',
+        ));
+
+        $result = $updater->plugin_popup(
+            false,
+            'plugin_information',
+            (object) array('slug' => 'kursorganizer-wp-plugin-main')
+        );
+
+        self::assertIsObject($result);
+        self::assertSame('1.2.9', $result->version);
+        self::assertSame('https://github.com/release/plugin.zip', $result->download_link);
+        self::assertStringContainsString('vorübergehend nicht geladen', $result->sections['changelog']);
+    }
+
+    public function testPluginPopupDoesNotInterceptUnrelatedPluginSlugs(): void
+    {
+        $updater = new KursOrganizer_Plugin_Updater(array(
+            'slug' => '/plugins/kursorganizer-wp-plugin/kursorganizer-wp-plugin.php',
+            'api_url' => 'https://api.github.com/repos/triias/kursorganizer-wp-plugin',
+        ));
+        $original = (object) array('source' => 'another-plugin');
+
+        $result = $updater->plugin_popup(
+            $original,
+            'plugin_information',
+            (object) array('slug' => 'another-plugin')
+        );
+
+        self::assertSame($original, $result);
+        self::assertSame(0, $GLOBALS['ko_test_remote_calls']);
     }
 
     public function testAfterInstallIgnoresOtherPlugins(): void

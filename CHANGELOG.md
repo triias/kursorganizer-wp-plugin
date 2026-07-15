@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.2.9] - 2026-07-15
+### Fixed
+- Das Versionsdetails-Popup erkennt jetzt sowohl den kanonischen Plugin-Slug als auch historische Installationsordner wie `kursorganizer-wp-plugin-main`, selbst wenn der WordPress-Update-Cache noch einen anderen Ordnernamen enthält.
+- Schlägt der erneute GitHub-API-Aufruf im Popup temporär fehl, werden die bereits im WordPress-Update-Transient gespeicherten Versions- und Download-Daten verwendet, statt auf WordPress.org zurückzufallen und „Plugin not found“ anzuzeigen.
+- Fremde Plugin-Slugs werden weiterhin nicht vom KursOrganizer-Updater verarbeitet.
+
 ## [1.2.8] - 2026-07-15
 ### Added
 - Neues Shortcode-Attribut `listtype` mit den Werten `all`, `interest` und `courses`, um Kurse und Interessentenlisten gemeinsam oder einzeln anzuzeigen.

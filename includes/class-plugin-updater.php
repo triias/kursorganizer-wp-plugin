@@ -5,6 +5,12 @@ if (!defined('ABSPATH')) {
 
 class KursOrganizer_Plugin_Updater
 {
+    private const CANONICAL_SLUG = 'kursorganizer-wp-plugin';
+
+    private const HISTORICAL_SLUGS = array(
+        'kursorganizer-wp-plugin-main',
+    );
+
     private $file;
     private $plugin;
     private $basename;
@@ -83,46 +89,131 @@ class KursOrganizer_Plugin_Updater
             return $result;
         }
 
-        // Akzeptiere sowohl den Verzeichnis-Slug als auch den vollen Plugin-Pfad,
-        // damit Aufrufe aus alten Cache-States (oder anderer Code, der den Pfad sendet) sauber funktionieren.
+        // WordPress baut den Popup-Link aus dem Update-Transient. Dieser kann noch
+        // einen historischen Installationsordner enthalten, obwohl das Plugin
+        // inzwischen im kanonischen Ordner liegt (oder umgekehrt).
         $plugin_dir_slug = dirname($this->plugin);
-        if (empty($args->slug) || ($args->slug !== $plugin_dir_slug && $args->slug !== $this->basename)) {
+        $requested_slug = isset($args->slug) && is_scalar($args->slug) ? trim((string) $args->slug) : '';
+        if ($requested_slug === '' || !$this->is_supported_plugin_identifier($requested_slug)) {
             return $result;
         }
 
         $this->get_repository_info();
-
-        if (!$this->github_response || !isset($this->github_response->tag_name)) {
-            return $result;
-        }
-
-        $github_version = ltrim($this->github_response->tag_name, 'v');
+        $cached_update = $this->get_cached_update();
+        $has_release = $this->github_response && isset($this->github_response->tag_name);
         $plugin_data    = function_exists('get_plugin_data') ? get_plugin_data($this->file, false, false) : array();
 
         $description = isset($plugin_data['Description']) ? wp_strip_all_tags($plugin_data['Description']) : '';
+        $version = $has_release
+            ? ltrim($this->github_response->tag_name, 'v')
+            : $this->get_cached_update_value($cached_update, 'new_version');
+        if ($version === '') {
+            $version = isset($plugin_data['Version']) ? (string) $plugin_data['Version'] : '';
+        }
+        if ($version === '' && defined('KURSORGANIZER_VERSION')) {
+            $version = KURSORGANIZER_VERSION;
+        }
+
+        $release_url = $has_release && isset($this->github_response->html_url)
+            ? (string) $this->github_response->html_url
+            : $this->get_cached_update_value($cached_update, 'url');
+        $download_url = $has_release
+            ? $this->get_download_url()
+            : $this->get_cached_update_value($cached_update, 'package');
+        $changelog = $has_release
+            ? $this->get_changelog()
+            : '<p>Die Versionsdetails konnten vorübergehend nicht geladen werden. Das Update kann weiterhin über die Plugin-Aktualisierung installiert werden.</p>';
+
+        if ($plugin_dir_slug === '.' || $plugin_dir_slug === '') {
+            $plugin_dir_slug = self::CANONICAL_SLUG;
+        }
 
         $plugin = array(
             'name'              => isset($plugin_data['Name']) ? $plugin_data['Name'] : 'KursOrganizer X iFrame',
             'slug'              => $plugin_dir_slug,
-            'version'           => $github_version,
+            'version'           => $version,
             'author'            => isset($plugin_data['AuthorName']) ? $plugin_data['AuthorName'] : 'KursOrganizer GmbH',
             'author_profile'    => 'https://github.com/triias',
-            'last_updated'      => isset($this->github_response->published_at) ? $this->github_response->published_at : '',
+            'last_updated'      => $has_release && isset($this->github_response->published_at) ? $this->github_response->published_at : '',
             'homepage'          => isset($plugin_data['PluginURI']) && $plugin_data['PluginURI']
                 ? $plugin_data['PluginURI']
-                : (isset($this->github_response->html_url) ? $this->github_response->html_url : ''),
+                : $release_url,
             'requires'          => isset($plugin_data['RequiresWP']) ? $plugin_data['RequiresWP'] : '',
             'requires_php'      => isset($plugin_data['RequiresPHP']) ? $plugin_data['RequiresPHP'] : '',
             'short_description' => $description,
             'sections'          => array(
                 'description' => $description ? wpautop($description) : '<p>KursOrganizer X iFrame Plugin.</p>',
-                'changelog'   => $this->get_changelog(),
+                'changelog'   => $changelog,
             ),
             'icons'             => $this->get_icons(),
-            'download_link'     => $this->get_download_url(),
+            'download_link'     => $download_url,
         );
 
         return (object) $plugin;
+    }
+
+    /**
+     * Match the current directory, canonical identity and known historical
+     * GitHub source-archive directories without intercepting unrelated plugins.
+     */
+    private function is_supported_plugin_identifier($identifier)
+    {
+        $identifiers = array(
+            $this->plugin,
+            $this->basename,
+            dirname($this->plugin),
+            basename($this->plugin),
+            pathinfo(basename($this->plugin), PATHINFO_FILENAME),
+            self::CANONICAL_SLUG,
+        );
+
+        foreach (self::HISTORICAL_SLUGS as $historical_slug) {
+            $identifiers[] = $historical_slug;
+            $identifiers[] = $historical_slug . '/' . basename($this->plugin);
+        }
+
+        return in_array($identifier, array_unique($identifiers), true);
+    }
+
+    /**
+     * Reuse update metadata that WordPress already has when the live GitHub
+     * request for the popup is temporarily unavailable.
+     */
+    private function get_cached_update()
+    {
+        if (!function_exists('get_site_transient')) {
+            return null;
+        }
+
+        $updates = get_site_transient('update_plugins');
+        if (!$updates || empty($updates->response) || !is_array($updates->response)) {
+            return null;
+        }
+
+        if (isset($updates->response[$this->plugin]) && is_object($updates->response[$this->plugin])) {
+            return $updates->response[$this->plugin];
+        }
+
+        foreach ($updates->response as $plugin_file => $update) {
+            if (
+                is_string($plugin_file)
+                && is_object($update)
+                && $this->is_supported_plugin_identifier($plugin_file)
+            ) {
+                return $update;
+            }
+        }
+
+        return null;
+    }
+
+    private function get_cached_update_value($cached_update, $property)
+    {
+        if (!is_object($cached_update) || !isset($cached_update->{$property}) || !is_scalar($cached_update->{$property})) {
+            return '';
+        }
+
+        return trim((string) $cached_update->{$property});
     }
 
     /**

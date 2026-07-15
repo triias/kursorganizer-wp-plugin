@@ -5,6 +5,7 @@ define('HOUR_IN_SECONDS', 3600);
 
 $GLOBALS['ko_test_options'] = array();
 $GLOBALS['ko_test_transients'] = array();
+$GLOBALS['ko_test_site_transients'] = array();
 $GLOBALS['ko_test_remote_response'] = null;
 $GLOBALS['ko_test_remote_calls'] = 0;
 $GLOBALS['ko_test_remote_get_args'] = array();
@@ -69,6 +70,13 @@ function delete_transient($name)
 {
     unset($GLOBALS['ko_test_transients'][$name]);
     return true;
+}
+
+function get_site_transient($name)
+{
+    return array_key_exists($name, $GLOBALS['ko_test_site_transients'])
+        ? $GLOBALS['ko_test_site_transients'][$name]
+        : false;
 }
 
 function sanitize_text_field($value)
