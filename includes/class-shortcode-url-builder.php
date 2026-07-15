@@ -20,6 +20,12 @@ class KursOrganizer_Shortcode_URL_Builder
         'sonntag' => 'Sonntag',
     );
 
+    private const ALLOWED_LIST_TYPES = array(
+        'all',
+        'interest',
+        'courses',
+    );
+
     /**
      * Build a fully encoded iframe URL.
      *
@@ -63,6 +69,11 @@ class KursOrganizer_Shortcode_URL_Builder
         $days = self::sanitize_day_filter(isset($atts['dayfilter']) ? $atts['dayfilter'] : '');
         if (!empty($days)) {
             $params['dayFilter'] = implode(',', $days);
+        }
+
+        $list_type = self::normalize_list_type(isset($atts['listtype']) ? $atts['listtype'] : '');
+        if ($list_type !== '') {
+            $params['listType'] = $list_type;
         }
 
         $params['showFilterMenu'] = self::normalize_boolean(
@@ -151,6 +162,16 @@ class KursOrganizer_Shortcode_URL_Builder
     {
         $value = strtolower(trim((string) $value));
         return in_array($value, array('true', 'false'), true) ? $value : 'true';
+    }
+
+    /**
+     * Accept only the offer views supported by the end-user application.
+     * An empty result deliberately omits the parameter so the tenant default applies.
+     */
+    public static function normalize_list_type($value)
+    {
+        $value = strtolower(trim((string) $value));
+        return in_array($value, self::ALLOWED_LIST_TYPES, true) ? $value : '';
     }
 
     /**

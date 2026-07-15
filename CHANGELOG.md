@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.2.8] - 2026-07-15
+### Added
+- Neues Shortcode-Attribut `listtype` mit den Werten `all`, `interest` und `courses`, um Kurse und Interessentenlisten gemeinsam oder einzeln anzuzeigen.
+- Der Shortcode-Generator bietet eine Auswahl für die gewünschte Angebotsansicht.
+
+### Changed
+- Ohne `listtype` wird kein `listType`-URL-Parameter erzeugt, damit weiterhin die Mandanteneinstellung des KursOrganizer Web Moduls greift.
+- Ungültige `listtype`-Werte werden nicht an die Web-App weitergereicht.
+
 ## [1.2.7] - 2026-07-15
 ### Fixed
 - Der Updater wird jetzt bereits beim Laden des Plugins registriert und nimmt dadurch an regulaeren Admin-, Cron- und automatischen Update-Pruefungen teil.

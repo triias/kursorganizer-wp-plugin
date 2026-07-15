@@ -15,6 +15,7 @@ final class ShortcodeUrlBuilderTest extends TestCase
                 'locationid' => 'location-1',
                 'dayfilter' => 'Montag,Invalid,Dienstag,Montag" onload="alert(1)',
                 'coursecategoryid' => 'category-1',
+                'listtype' => ' Interest ',
                 'showfiltermenu' => 'false',
             ),
             array(
@@ -31,6 +32,7 @@ final class ShortcodeUrlBuilderTest extends TestCase
         self::assertSame('trainer_1', $query['instructorId']);
         self::assertSame('type-1,type-2', $query['courseTypeIds']);
         self::assertSame('Montag,Dienstag', $query['dayFilter']);
+        self::assertSame('interest', $query['listType']);
         self::assertSame('false', $query['showFilterMenu']);
         self::assertSame('90%', $query['maxWidth']);
         self::assertArrayNotHasKey('onload', $query);
@@ -47,7 +49,25 @@ final class ShortcodeUrlBuilderTest extends TestCase
         }
         self::assertCount(50, KursOrganizer_Shortcode_URL_Builder::sanitize_id_list(implode(',', $ids)));
         self::assertSame('true', KursOrganizer_Shortcode_URL_Builder::normalize_boolean('not-a-boolean'));
+        self::assertSame('all', KursOrganizer_Shortcode_URL_Builder::normalize_list_type(' ALL '));
+        self::assertSame('interest', KursOrganizer_Shortcode_URL_Builder::normalize_list_type('Interest'));
+        self::assertSame('courses', KursOrganizer_Shortcode_URL_Builder::normalize_list_type('courses'));
+        self::assertSame('', KursOrganizer_Shortcode_URL_Builder::normalize_list_type('unknown'));
         self::assertSame(array('Montag', 'Sonntag'), KursOrganizer_Shortcode_URL_Builder::sanitize_day_filter('montag,Sonntag,unknown'));
+    }
+
+    public function testListTypeIsOmittedSoTheTenantDefaultCanApply(): void
+    {
+        foreach (array('', 'unknown') as $list_type) {
+            $url = KursOrganizer_Shortcode_URL_Builder::build(
+                'https://app.example.kursorganizer.com/build/',
+                array('listtype' => $list_type),
+                array()
+            );
+
+            parse_str(parse_url($url, PHP_URL_QUERY), $query);
+            self::assertArrayNotHasKey('listType', $query);
+        }
     }
 
     /** @dataProvider maxWidthProvider */
