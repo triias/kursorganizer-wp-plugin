@@ -34,7 +34,7 @@ jobs:
           node --check assets/js/admin.js
           node --check scripts/check-changelog.mjs
           node --check scripts/sync-version.mjs
-          bash -n deploy.sh scripts/build-release.sh
+          bash -n deploy.sh scripts/build-release.sh scripts/test-updater-integration.sh
 
       - name: Verify synchronized version
         run: |

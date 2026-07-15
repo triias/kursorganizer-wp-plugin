@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.2.7] - 2026-07-15
+### Fixed
+- Der Updater wird jetzt bereits beim Laden des Plugins registriert und nimmt dadurch an regulaeren Admin-, Cron- und automatischen Update-Pruefungen teil.
+- Der globale Nachinstallations-Hook verarbeitet ausschliesslich das KursOrganizer-Plugin und kann Installationen anderer Plugins nicht mehr beeinflussen.
+- Updates aus historischen Installationsordnern wie `kursorganizer-wp-plugin-main` behalten den bestehenden Plugin-Pfad bei.
+- Veraltete, unsichtbar gespeicherte GitHub-Tokens koennen die Abfrage des oeffentlichen Release-Repositorys nicht mehr blockieren.
+
+### Changed
+- WordPress-Kompatibilitaet auf Version 7.0 getestet.
+
 ## [1.2.6] - 2026-07-15
 ### Security
 - Sämtliche Shortcode-Parameter werden vor dem URL-Aufbau typ- und formatbezogen validiert.

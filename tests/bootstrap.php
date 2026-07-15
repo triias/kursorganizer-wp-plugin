@@ -7,6 +7,10 @@ $GLOBALS['ko_test_options'] = array();
 $GLOBALS['ko_test_transients'] = array();
 $GLOBALS['ko_test_remote_response'] = null;
 $GLOBALS['ko_test_remote_calls'] = 0;
+$GLOBALS['ko_test_remote_get_args'] = array();
+$GLOBALS['ko_test_filters'] = array();
+$GLOBALS['ko_test_plugin_active'] = false;
+$GLOBALS['ko_test_activated_plugins'] = array();
 
 class WP_Error
 {
@@ -139,6 +143,16 @@ function wp_remote_post($url, $args)
     return $GLOBALS['ko_test_remote_response'];
 }
 
+function wp_remote_get($url, $args = array())
+{
+    $GLOBALS['ko_test_remote_calls']++;
+    $GLOBALS['ko_test_remote_get_args'][] = array(
+        'url' => $url,
+        'args' => $args,
+    );
+    return $GLOBALS['ko_test_remote_response'];
+}
+
 function wp_remote_retrieve_response_code($response)
 {
     return isset($response['response']['code']) ? $response['response']['code'] : 0;
@@ -151,7 +165,7 @@ function wp_remote_retrieve_body($response)
 
 function is_plugin_active($plugin)
 {
-    return false;
+    return $GLOBALS['ko_test_plugin_active'];
 }
 
 function plugin_basename($file)
@@ -161,7 +175,34 @@ function plugin_basename($file)
 
 function add_filter($hook, $callback, $priority = 10, $accepted_args = 1)
 {
+    $GLOBALS['ko_test_filters'][] = array(
+        'hook' => $hook,
+        'callback' => $callback,
+        'priority' => $priority,
+        'accepted_args' => $accepted_args,
+    );
     return true;
+}
+
+function plugin_dir_path($file)
+{
+    return rtrim(dirname($file), '/\\') . '/';
+}
+
+function activate_plugin($plugin)
+{
+    $GLOBALS['ko_test_activated_plugins'][] = $plugin;
+    return null;
+}
+
+function wp_strip_all_tags($value)
+{
+    return strip_tags((string) $value);
+}
+
+function wpautop($value)
+{
+    return '<p>' . (string) $value . '</p>';
 }
 
 require_once dirname(__DIR__) . '/includes/class-shortcode-url-builder.php';

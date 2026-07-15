@@ -3,9 +3,9 @@
 Plugin Name: KursOrganizer X iFrame
 Plugin URI: https://kursorganizer.com
 Description: Fügt einen Shortcode hinzu, um das WebModul des KursOrganizers per [kursorganizer_iframe] in eine WordPress-Seite einzubetten.
-Version: 1.2.6
+Version: 1.2.7
 Requires at least: 5.0
-Tested up to: 6.9
+Tested up to: 7.0
 Requires PHP: 7.4
 Author: KursOrganizer GmbH
 Author URI: https://kursorganizer.com
@@ -20,7 +20,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('KURSORGANIZER_VERSION', '1.2.6');
+define('KURSORGANIZER_VERSION', '1.2.7');
 define('KURSORGANIZER_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('KURSORGANIZER_PLUGIN_URL', plugin_dir_url(__FILE__));
 
@@ -40,30 +40,29 @@ require_once KURSORGANIZER_PLUGIN_DIR . 'includes/class-validation-state.php';
 // Initialize the updater
 function kursorganizer_init_updater()
 {
-    if (!class_exists('KursOrganizer_Plugin_Updater')) {
-        return;
+    static $updater = null;
+
+    if ($updater instanceof KursOrganizer_Plugin_Updater) {
+        return $updater;
     }
 
-    // Retrieve stored GitHub access token
-    $options = get_option('kursorganizer_settings');
-    $access_token = isset($options['github_token']) ? $options['github_token'] : '';
+    if (!class_exists('KursOrganizer_Plugin_Updater')) {
+        return null;
+    }
 
-    // Configure the updater
-    $plugin_file = __FILE__;
-    $updater = new KursOrganizer_Plugin_Updater([
-        'slug' => $plugin_file,
-        'proper_folder_name' => 'kursorganizer-wp-plugin',
+    // Das Repository ist öffentlich. Frühere, versteckt gespeicherte Tokens
+    // werden absichtlich nicht mehr für Update-Anfragen verwendet.
+    $updater = new KursOrganizer_Plugin_Updater(array(
+        'slug' => __FILE__,
         'api_url' => 'https://api.github.com/repos/triias/kursorganizer-wp-plugin',
-        'raw_url' => 'https://raw.github.com/triias/kursorganizer-wp-plugin/master',
-        'github_url' => 'https://github.com/triias/kursorganizer-wp-plugin',
-        'zip_url' => 'https://github.com/triias/kursorganizer-wp-plugin/archive/master.zip',
-        'sslverify' => true,
-        'access_token' => $access_token,
-    ]);
+    ));
+
+    return $updater;
 }
 
-// Move this to run later when admin functions are available
-add_action('admin_init', 'kursorganizer_init_updater');
+// Sofort registrieren: WordPress prueft Updates bereits vor spaeten Admin-Hooks
+// und fuehrt Cron-Pruefungen ganz ohne admin_init aus.
+kursorganizer_init_updater();
 
 // Add settings link on plugin page
 function kursorganizer_plugin_action_links($links)

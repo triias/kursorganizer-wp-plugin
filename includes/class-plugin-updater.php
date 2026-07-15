@@ -3,11 +3,6 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-// Include admin functions for is_plugin_active().
-if (!function_exists('is_plugin_active')) {
-    require_once(ABSPATH . 'wp-admin/includes/plugin.php');
-}
-
 class KursOrganizer_Plugin_Updater
 {
     private $file;
@@ -15,7 +10,6 @@ class KursOrganizer_Plugin_Updater
     private $basename;
     private $active;
     private $github_response;
-    private $authorize_token;
     private $github_url;
     private $config;
 
@@ -25,9 +19,10 @@ class KursOrganizer_Plugin_Updater
         $this->file = $config['slug'];
         $this->plugin = plugin_basename($this->file);
         $this->basename = plugin_basename($this->file);
-        $this->active = is_plugin_active($this->plugin);
+        // Diese Klasse wird durch die aktive Plugin-Hauptdatei geladen. Der
+        // Guard erlaubt gleichzeitig isolierte Tests ohne WordPress-Admin-Dateien.
+        $this->active = function_exists('is_plugin_active') ? is_plugin_active($this->plugin) : true;
         $this->github_url = $config['api_url'];
-        $this->authorize_token = $config['access_token'];
 
         // Hook into WordPress Update processes
         add_filter('pre_set_site_transient_update_plugins', array($this, 'modify_transient'), 10, 1);
@@ -66,7 +61,7 @@ class KursOrganizer_Plugin_Updater
                     'plugin'      => $this->plugin,
                     'slug'        => $plugin_dir_slug,
                     'new_version' => $github_version,
-                    'url'         => $this->github_response->html_url,
+                    'url'         => isset($this->github_response->html_url) ? $this->github_response->html_url : '',
                     'package'     => $this->get_download_url(),
                     'icons'       => $this->get_icons(),
                     'banners'     => array(),
@@ -112,8 +107,10 @@ class KursOrganizer_Plugin_Updater
             'version'           => $github_version,
             'author'            => isset($plugin_data['AuthorName']) ? $plugin_data['AuthorName'] : 'KursOrganizer GmbH',
             'author_profile'    => 'https://github.com/triias',
-            'last_updated'      => $this->github_response->published_at,
-            'homepage'          => isset($plugin_data['PluginURI']) && $plugin_data['PluginURI'] ? $plugin_data['PluginURI'] : $this->github_response->html_url,
+            'last_updated'      => isset($this->github_response->published_at) ? $this->github_response->published_at : '',
+            'homepage'          => isset($plugin_data['PluginURI']) && $plugin_data['PluginURI']
+                ? $plugin_data['PluginURI']
+                : (isset($this->github_response->html_url) ? $this->github_response->html_url : ''),
             'requires'          => isset($plugin_data['RequiresWP']) ? $plugin_data['RequiresWP'] : '',
             'requires_php'      => isset($plugin_data['RequiresPHP']) ? $plugin_data['RequiresPHP'] : '',
             'short_description' => $description,
@@ -174,9 +171,6 @@ class KursOrganizer_Plugin_Updater
                 'timeout' => 15,
                 'sslverify' => true
             );
-            if ($this->authorize_token) {
-                $args['headers']['Authorization'] = "token {$this->authorize_token}";
-            }
 
             $response = wp_remote_get(
                 "{$this->github_url}/releases/latest",
@@ -220,10 +214,10 @@ class KursOrganizer_Plugin_Updater
 
         // Fallback: CHANGELOG.md vom Default-Branch laden (main, mit master als Fallback).
         // Repo-Pfad aus der API-URL extrahieren, damit ein Repo-Rename keinen weiteren Patch erfordert.
-        $args = array();
-        if ($this->authorize_token) {
-            $args['headers']['Authorization'] = "token {$this->authorize_token}";
-        }
+        $args = array(
+            'timeout' => 15,
+            'sslverify' => true,
+        );
 
         $raw_base = preg_replace('#^https://api\.github\.com/repos/#', 'https://raw.githubusercontent.com/', $this->github_url);
         foreach (['main', 'master'] as $branch) {
@@ -240,11 +234,56 @@ class KursOrganizer_Plugin_Updater
     {
         global $wp_filesystem;
 
-        $install_directory = plugin_dir_path($this->file);
-        $wp_filesystem->move($result['destination'], $install_directory);
+        // Der Filter ist global. Installationen anderer Plugins duerfen niemals
+        // in das KursOrganizer-Verzeichnis verschoben werden.
+        if (empty($hook_extra['plugin']) || $hook_extra['plugin'] !== $this->plugin) {
+            return $response;
+        }
+
+        if (is_wp_error($response) || empty($result['destination'])) {
+            return $response;
+        }
+
+        $install_directory = rtrim(plugin_dir_path($this->file), '/\\');
+        $current_destination = rtrim($result['destination'], '/\\');
+
+        // Aeltere GitHub-Archive wurden als kursorganizer-wp-plugin-main
+        // installiert. Das kuratierte Release-Asset hat den kanonischen
+        // Wurzelordner; bei einem Update bleibt der bestehende Ordnername
+        // erhalten, damit WordPress das aktive Plugin weiterhin findet.
+        if ($current_destination !== $install_directory) {
+            if (!is_object($wp_filesystem) || !method_exists($wp_filesystem, 'move')) {
+                return new WP_Error(
+                    'kursorganizer_updater_filesystem_unavailable',
+                    'Das Plugin-Verzeichnis konnte nicht aktualisiert werden.'
+                );
+            }
+
+            if (
+                method_exists($wp_filesystem, 'exists')
+                && $wp_filesystem->exists($install_directory)
+                && (
+                    !method_exists($wp_filesystem, 'delete')
+                    || !$wp_filesystem->delete($install_directory, true)
+                )
+            ) {
+                return new WP_Error(
+                    'kursorganizer_updater_destination_cleanup_failed',
+                    'Das bisherige Plugin-Verzeichnis konnte nicht bereinigt werden.'
+                );
+            }
+
+            if (!$wp_filesystem->move($current_destination, $install_directory, true)) {
+                return new WP_Error(
+                    'kursorganizer_updater_move_failed',
+                    'Das Plugin-Verzeichnis konnte nicht an seinen bisherigen Ort verschoben werden.'
+                );
+            }
+        }
+
         $result['destination'] = $install_directory;
 
-        if ($this->active) {
+        if ($this->active && function_exists('activate_plugin')) {
             activate_plugin($this->plugin);
         }
 

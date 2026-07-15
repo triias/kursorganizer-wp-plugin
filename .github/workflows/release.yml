@@ -29,6 +29,7 @@ jobs:
           find . -name '*.php' -not -path './vendor/*' -print0 | xargs -0 -n1 php -l
           node --check assets/js/admin.js
           bash -n scripts/build-release.sh
+          bash -n scripts/test-updater-integration.sh
 
       - name: Extract version from tag
         id: version
