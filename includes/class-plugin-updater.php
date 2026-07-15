@@ -3,8 +3,10 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-// Include admin functions for is_plugin_active()
-require_once(ABSPATH . 'wp-admin/includes/plugin.php');
+// Include admin functions for is_plugin_active().
+if (!function_exists('is_plugin_active')) {
+    require_once(ABSPATH . 'wp-admin/includes/plugin.php');
+}
 
 class KursOrganizer_Plugin_Updater
 {
@@ -65,7 +67,7 @@ class KursOrganizer_Plugin_Updater
                     'slug'        => $plugin_dir_slug,
                     'new_version' => $github_version,
                     'url'         => $this->github_response->html_url,
-                    'package'     => $this->github_response->zipball_url,
+                    'package'     => $this->get_download_url(),
                     'icons'       => $this->get_icons(),
                     'banners'     => array(),
                     'banners_rtl' => array(),
@@ -120,7 +122,7 @@ class KursOrganizer_Plugin_Updater
                 'changelog'   => $this->get_changelog(),
             ),
             'icons'             => $this->get_icons(),
-            'download_link'     => $this->github_response->zipball_url,
+            'download_link'     => $this->get_download_url(),
         );
 
         return (object) $plugin;
@@ -142,6 +144,27 @@ class KursOrganizer_Plugin_Updater
             'svg'     => "{$icon_base}/icon.svg",
             'default' => "{$icon_base}/icon.svg",
         );
+    }
+
+    /**
+     * Prefer the curated plugin ZIP attached to a release. Older releases and
+     * clients remain compatible through GitHub's source zipball fallback.
+     */
+    private function get_download_url()
+    {
+        if (!empty($this->github_response->assets) && is_array($this->github_response->assets)) {
+            foreach ($this->github_response->assets as $asset) {
+                if (
+                    isset($asset->name, $asset->browser_download_url)
+                    && $asset->name === 'kursorganizer-wp-plugin.zip'
+                    && filter_var($asset->browser_download_url, FILTER_VALIDATE_URL)
+                ) {
+                    return $asset->browser_download_url;
+                }
+            }
+        }
+
+        return isset($this->github_response->zipball_url) ? $this->github_response->zipball_url : '';
     }
 
     private function get_repository_info()

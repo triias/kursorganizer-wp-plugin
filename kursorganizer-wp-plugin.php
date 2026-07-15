@@ -3,7 +3,7 @@
 Plugin Name: KursOrganizer X iFrame
 Plugin URI: https://kursorganizer.com
 Description: Fügt einen Shortcode hinzu, um das WebModul des KursOrganizers per [kursorganizer_iframe] in eine WordPress-Seite einzubetten.
-Version: 1.2.5
+Version: 1.2.6
 Requires at least: 5.0
 Tested up to: 6.9
 Requires PHP: 7.4
@@ -20,7 +20,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('KURSORGANIZER_VERSION', '1.2.5');
+define('KURSORGANIZER_VERSION', '1.2.6');
 define('KURSORGANIZER_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('KURSORGANIZER_PLUGIN_URL', plugin_dir_url(__FILE__));
 
@@ -32,6 +32,10 @@ require_once KURSORGANIZER_PLUGIN_DIR . 'includes/class-plugin-updater.php';
 
 // Load API helper class
 require_once KURSORGANIZER_PLUGIN_DIR . 'includes/class-kursorganizer-api.php';
+
+// Load focused helpers used by the shortcode and background validation.
+require_once KURSORGANIZER_PLUGIN_DIR . 'includes/class-shortcode-url-builder.php';
+require_once KURSORGANIZER_PLUGIN_DIR . 'includes/class-validation-state.php';
 
 // Initialize the updater
 function kursorganizer_init_updater()
@@ -193,38 +197,15 @@ function kursorganizer_sanitize_settings($input)
 
     // Überschreibe nur die geänderten Werte
     if (isset($input['main_app_url'])) {
-        $url = esc_url_raw(trim($input['main_app_url']));
-
-        // Ensure URL ends with /build or /build/
-        $parsed = parse_url($url);
-        if ($parsed && isset($parsed['host'])) {
-            // Check if URL is a kursorganizer.com domain
-            if (strpos($parsed['host'], 'kursorganizer.com') !== false) {
-                $path = isset($parsed['path']) ? rtrim($parsed['path'], '/') : '';
-
-                // If path doesn't end with /build, add it
-                if ($path !== '/build') {
-                    // Remove trailing slash if present, then add /build
-                    $url = rtrim($url, '/') . '/build';
-                }
-
-                // Add trailing slash
-                $url = trailingslashit($url);
-            } else {
-                // For non-kursorganizer.com domains, require /build
-                $path = isset($parsed['path']) ? rtrim($parsed['path'], '/') : '';
-                if ($path !== '/build') {
-                    add_settings_error(
-                        'kursorganizer_messages',
-                        'url_missing_build',
-                        'Die URL muss auf "/build" enden. Beispiel: https://app.ihrefirma.kursorganizer.com/build/',
-                        'error'
-                    );
-                    // Return existing options to prevent saving
-                    return $existing_options;
-                }
-                $url = trailingslashit($url);
-            }
+        $url = KursOrganizer_API::normalize_app_url($input['main_app_url']);
+        if (is_wp_error($url)) {
+            add_settings_error(
+                'kursorganizer_messages',
+                $url->get_error_code(),
+                kursorganizer_validation_error_message($url),
+                'error'
+            );
+            return $existing_options;
         }
 
         $new_input['main_app_url'] = $url;
@@ -255,12 +236,7 @@ function kursorganizer_sanitize_settings($input)
 
     // Validate and save max width
     if (isset($input['max_width'])) {
-        $max_width = sanitize_text_field($input['max_width']);
-        // Wenn leer, setze auf Default 1200px
-        if (empty($max_width)) {
-            $max_width = '1200px';
-        }
-        $new_input['max_width'] = $max_width;
+        $new_input['max_width'] = KursOrganizer_Shortcode_URL_Builder::format_max_width($input['max_width']);
     }
 
     // Validate Organization ID if both URL and ID are provided
@@ -268,11 +244,17 @@ function kursorganizer_sanitize_settings($input)
     $ko_organization_id = isset($new_input['ko_organization_id']) ? $new_input['ko_organization_id'] : '';
 
     if (!empty($main_app_url) && !empty($ko_organization_id)) {
-        $validation_result = kursorganizer_validate_organization_id($main_app_url, $ko_organization_id);
-        // If validation failed, don't save the settings - return existing options
-        if ($validation_result === false) {
+        $validation_result = KursOrganizer_API::validate_organization_id($main_app_url, $ko_organization_id);
+        if (is_wp_error($validation_result)) {
+            add_settings_error(
+                'kursorganizer_messages',
+                $validation_result->get_error_code(),
+                kursorganizer_validation_error_message($validation_result),
+                'error'
+            );
             return $existing_options;
         }
+        KursOrganizer_Validation_State::mark_valid($main_app_url, $ko_organization_id);
     }
 
     return $new_input;
@@ -311,7 +293,7 @@ function kursorganizer_url_field_callback()
     $has_error = false;
     $settings_errors = get_settings_errors('kursorganizer_messages');
     foreach ($settings_errors as $error) {
-        if ($error['code'] === 'org_id_api_error' || $error['code'] === 'org_id_validation_error') {
+        if (in_array($error['code'], array('invalid_url', 'url_missing_build', 'api_unavailable', 'http_error', 'invalid_response', 'company_not_found'), true)) {
             $has_error = true;
             break;
         }
@@ -347,7 +329,7 @@ function kursorganizer_org_id_field_callback()
     $has_error = false;
     $settings_errors = get_settings_errors('kursorganizer_messages');
     foreach ($settings_errors as $error) {
-        if ($error['code'] === 'org_id_mismatch' || $error['code'] === 'org_id_api_error' || $error['code'] === 'org_id_validation_error') {
+        if (in_array($error['code'], array('invalid_organization_id', 'organization_mismatch', 'api_unavailable', 'http_error', 'invalid_response'), true)) {
             $has_error = true;
             break;
         }
@@ -433,7 +415,7 @@ function kursorganizer_auto_detect_app_url()
     // - app.stage.dev-schule.kursorganizer.com → app.stage.dev-schule.kursorganizer.com (already correct)
 
     // If it's already a kursorganizer.com domain, use it as-is
-    if (strpos($host, 'kursorganizer.com') !== false) {
+    if (KursOrganizer_API::is_kursorganizer_host($host)) {
         // Check if it's already an app.* URL
         if (strpos($host, 'app.') === 0) {
             return 'https://' . $host . '/build/';
@@ -544,40 +526,7 @@ function kursorganizer_max_width_field_callback()
 // Format max width value - adds px unit if none provided
 function kursorganizer_format_max_width($value)
 {
-    // Entferne Leerzeichen
-    $value = trim($value);
-
-    // Wenn leer, Standardwert zurückgeben
-    if (empty($value)) {
-        return '1200px';
-    }
-
-    // Unterstützte Einheiten
-    $units = array('px', '%', 'em', 'rem', 'vh', 'vw');
-
-    // Prüfe ob bereits eine Einheit vorhanden ist (case-insensitive, am Ende des Strings)
-    $has_unit = false;
-    $value_lower = strtolower($value);
-    foreach ($units as $unit) {
-        // Prüfe ob die Einheit am Ende des Strings steht
-        if (substr($value_lower, -strlen($unit)) === $unit) {
-            $has_unit = true;
-            break;
-        }
-    }
-
-    // Wenn keine Einheit vorhanden, füge px hinzu
-    if (!$has_unit) {
-        // Prüfe ob es eine Zahl ist (kann auch Dezimalzahlen enthalten)
-        if (is_numeric($value)) {
-            $value = $value . 'px';
-        } else {
-            // Falls nicht numerisch, Standardwert zurückgeben
-            return '1200px';
-        }
-    }
-
-    return $value;
+    return KursOrganizer_Shortcode_URL_Builder::format_max_width($value);
 }
 
 // Validate CSS URL
@@ -610,174 +559,49 @@ function kursorganizer_validate_css_url($url)
     return $url;
 }
 
-// Static flag to prevent recursion during validation
-static $kursorganizer_validating = false;
+/**
+ * Return a safe, user-facing message for validation errors.
+ */
+function kursorganizer_validation_error_message($error)
+{
+    $messages = array(
+        'invalid_url' => 'Die Web-App URL ist ungültig. Bitte verwenden Sie eine vollständige HTTP- oder HTTPS-URL.',
+        'url_missing_build' => 'Die URL muss auf "/build" enden. Andere Pfade werden nicht unterstützt.',
+        'invalid_organization_id' => 'Bitte geben Sie eine Organization ID ein.',
+        'api_unavailable' => 'Die KursOrganizer API ist derzeit nicht erreichbar. Bitte versuchen Sie es später erneut.',
+        'http_error' => 'Die KursOrganizer API hat einen HTTP-Fehler zurückgegeben. Bitte versuchen Sie es später erneut.',
+        'invalid_response' => 'Die Organization ID konnte wegen einer ungültigen API-Antwort nicht überprüft werden.',
+        'company_not_found' => 'Für die eingegebene Web-App URL wurde keine Schwimmschule gefunden.',
+        'organization_mismatch' => 'Die Organization ID stimmt nicht mit der Web-App URL überein.',
+    );
 
-// Validate Organization ID
-// Returns true if valid, false if invalid, null if validation skipped
+    if (!is_wp_error($error)) {
+        return 'Die Organization ID konnte nicht überprüft werden.';
+    }
+
+    $code = $error->get_error_code();
+    return isset($messages[$code]) ? $messages[$code] : 'Die Organization ID konnte nicht überprüft werden.';
+}
+
+// Backward-compatible wrapper used by third-party integrations.
 function kursorganizer_validate_organization_id($input_url, $input_org_id)
 {
-    global $kursorganizer_validating;
-
-    // Skip validation if either value is empty
     if (empty($input_url) || empty($input_org_id)) {
         return null;
     }
 
-    // Prevent recursion
-    if ($kursorganizer_validating) {
-        return null;
-    }
-
-    $kursorganizer_validating = true;
-
-    try {
-        // Parse URL to get origin for API call
-        $parsed = parse_url($input_url);
-        if (!$parsed || !isset($parsed['scheme']) || !isset($parsed['host'])) {
-            $kursorganizer_validating = false;
-            return;
-        }
-
-        // Validate and fix URL to ensure it ends with /build
-        if (strpos($parsed['host'], 'kursorganizer.com') !== false) {
-            $path = isset($parsed['path']) ? rtrim($parsed['path'], '/') : '';
-
-            // If path doesn't end with /build, add it
-            if ($path !== '/build') {
-                $input_url = rtrim($input_url, '/') . '/build';
-                // Re-parse after modification
-                $parsed = parse_url($input_url);
-            }
-
-            // Add trailing slash
-            $input_url = trailingslashit($input_url);
-        } else {
-            // For non-kursorganizer.com domains, require /build
-            $path = isset($parsed['path']) ? rtrim($parsed['path'], '/') : '';
-            if ($path !== '/build') {
-                add_settings_error(
-                    'kursorganizer_messages',
-                    'url_missing_build',
-                    'Die URL muss auf "/build" enden. Beispiel: https://app.ihrefirma.kursorganizer.com/build/',
-                    'error'
-                );
-                $kursorganizer_validating = false;
-                return false;
-            }
-            $input_url = trailingslashit($input_url);
-        }
-
-        $origin = $parsed['scheme'] . '://' . $parsed['host'];
-        if (isset($parsed['port'])) {
-            $origin .= ':' . $parsed['port'];
-        }
-
-        // Determine API URL based on the input URL
-        $api_url = 'https://api.kursorganizer.com/graphql';
-        if (strpos($input_url, 'localhost') !== false || strpos($input_url, '127.0.0.1') !== false || strpos($input_url, '.local') !== false) {
-            $parsed_api = parse_url($input_url);
-            $port = isset($parsed_api['port']) ? $parsed_api['port'] : '3000';
-            $scheme = isset($parsed_api['scheme']) ? $parsed_api['scheme'] : 'http';
-            $host = isset($parsed_api['host']) ? $parsed_api['host'] : 'localhost';
-            $api_url = $scheme . '://' . $host . ':' . $port . '/graphql';
-        } elseif (strpos($input_url, '.stage.') !== false) {
-            $api_url = 'https://api.stage.kursorganizer.com/graphql';
-        }
-
-        // Query GetCompany to get organization ID directly
-        $query = 'query GetCompany {
-            companyPublic {
-                name
-                host
-                koOrganization {
-                    id
-                }
-            }
-        }';
-
-        $headers = [
-            'Content-Type' => 'application/json',
-            'Accept' => 'application/json',
-            'Origin' => $origin,
-            'x-application-type' => 'end-user-app'
-        ];
-
-        $body = json_encode([
-            'query' => $query,
-            'operationName' => 'GetCompany',
-            'variables' => []
-        ]);
-
-        $response = wp_remote_post($api_url, [
-            'headers' => $headers,
-            'body' => $body,
-            'timeout' => 15,
-        ]);
-
-        if (is_wp_error($response)) {
-            // API error - block saving
-            add_settings_error(
-                'kursorganizer_messages',
-                'org_id_api_error',
-                sprintf(
-                    'Die Organization ID konnte nicht automatisch überprüft werden: %s. Bitte stellen Sie sicher, dass die URL korrekt ist. Die Einstellungen wurden nicht gespeichert.',
-                    $response->get_error_message()
-                ),
-                'error'
-            );
-            $kursorganizer_validating = false;
-            return false;
-        }
-
-        $response_code = wp_remote_retrieve_response_code($response);
-        $response_body = wp_remote_retrieve_body($response);
-        $data = json_decode($response_body, true);
-
-        if (json_last_error() !== JSON_ERROR_NONE || !isset($data['data']['companyPublic']['koOrganization']['id'])) {
-            // API error - block saving
-            add_settings_error(
-                'kursorganizer_messages',
-                'org_id_api_error',
-                'Die Organization ID konnte nicht automatisch überprüft werden. Bitte stellen Sie sicher, dass die URL korrekt ist. Die Einstellungen wurden nicht gespeichert.',
-                'error'
-            );
-            $kursorganizer_validating = false;
-            return false;
-        }
-
-        $api_org_id = $data['data']['companyPublic']['koOrganization']['id'];
-
-        // Compare IDs (case-insensitive)
-        $input_org_id_clean = strtolower(trim($input_org_id));
-        $api_org_id_clean = strtolower(trim($api_org_id));
-
-        if ($input_org_id_clean !== $api_org_id_clean) {
-            // IDs don't match - block saving
-            // Don't show the correct ID for security reasons
-            add_settings_error(
-                'kursorganizer_messages',
-                'org_id_mismatch',
-                'FEHLER: Die eingegebene Organization ID stimmt nicht mit der automatisch aus der URL ermittelten ID überein. Bitte überprüfen Sie Ihre Eingabe und stellen Sie sicher, dass die URL und die Organization ID zur gleichen Schwimmschule gehören. Die Einstellungen wurden nicht gespeichert.',
-                'error'
-            );
-            $kursorganizer_validating = false;
-            return false;
-        }
-
-        // Validation successful
-        $kursorganizer_validating = false;
+    $result = KursOrganizer_API::validate_organization_id($input_url, $input_org_id);
+    if (!is_wp_error($result)) {
         return true;
-    } catch (Exception $e) {
-        $kursorganizer_validating = false;
-        add_settings_error(
-            'kursorganizer_messages',
-            'org_id_validation_error',
-            'Ein unerwarteter Fehler ist bei der Validierung aufgetreten. Die Einstellungen wurden nicht gespeichert.',
-            'error'
-        );
-        return false;
     }
+
+    add_settings_error(
+        'kursorganizer_messages',
+        $result->get_error_code(),
+        kursorganizer_validation_error_message($result),
+        'error'
+    );
+    return false;
 }
 
 // Settings page
@@ -862,7 +686,7 @@ function kursorganizer_settings_tab_content()
     $has_validation_error = false;
     $settings_errors = get_settings_errors('kursorganizer_messages');
     foreach ($settings_errors as $error) {
-        if ($error['code'] === 'org_id_mismatch' || $error['code'] === 'org_id_api_error' || $error['code'] === 'org_id_validation_error' || $error['code'] === 'url_missing_build') {
+        if (in_array($error['code'], array('invalid_url', 'url_missing_build', 'invalid_organization_id', 'organization_mismatch', 'api_unavailable', 'http_error', 'invalid_response', 'company_not_found'), true)) {
             $has_validation_error = true;
             break;
         }
@@ -1618,16 +1442,13 @@ function kursOrganizer_iframe_shortcode($atts)
         }
     }
 
-    // Check if validation is required and if it passes
-    $validation_result = kursorganizer_validate_organization_id($mainAppUrl, $ko_organization_id);
-    if ($validation_result === false) {
-        // Validation failed - don't render iframe
+    // A confirmed mismatch blocks rendering. Unverified states and temporary
+    // API failures never add latency to a public page request.
+    if (KursOrganizer_Validation_State::is_blocked($mainAppUrl, $ko_organization_id)) {
         if (current_user_can('manage_options')) {
             return '<div style="padding: 15px; background: #fff3cd; border-left: 4px solid #d63638; margin: 20px 0;"><strong style="color: #d63638;">⚠️ FEHLER:</strong> Die URL und die Organization ID stimmen nicht überein. Bitte korrigieren Sie die Einstellungen im WordPress-Admin unter "KursOrganizer X" → "Einstellungen".</div>';
-        } else {
-            // For non-admin users, show nothing or a generic message
-            return '';
         }
+        return '';
     }
 
     // CSS-Parameter aus Settings lesen
@@ -1639,70 +1460,39 @@ function kursOrganizer_iframe_shortcode($atts)
     $permalink = get_permalink();
     // Remove preview parameters to avoid infinite loops
     $permalink = remove_query_arg(['preview_id', 'preview_nonce', 'preview'], $permalink);
-    $parentUrl = urlencode($permalink);
+    $parent_url = $permalink;
 
     // Erstellen der iFrame-URL mit den Parametern
     // Cache-Busting: Füge Versions-Parameter hinzu, um Browser-Caching zu umgehen
     // Kombiniere Plugin-Version mit manuell inkrementierbarem Cache-Buster
     // Der Cache-Buster kann über "Cache leeren" Button aktualisiert werden
     $cache_buster_value = get_option('kursorganizer_cache_buster', 1);
-    $cache_buster = '&_v=' . KURSORGANIZER_CACHE_VERSION . '&_cb=' . $cache_buster_value;
-
-    // Baue URL-Parameter nur hinzu, wenn sie nicht leer sind
-    $url_params = array();
-    $url_params[] = "parentUrl=" . $parentUrl;
-
-    if (!empty($atts['city'])) {
-        $url_params[] = "city=" . urlencode($atts['city']);
-    }
-    if (!empty($atts['instructorid'])) {
-        $url_params[] = "instructorId=" . urlencode($atts['instructorid']);
-    }
-    if (!empty($atts['coursetypeid'])) {
-        $url_params[] = "courseTypeId=" . urlencode($atts['coursetypeid']);
-    }
-    if (!empty($atts['coursetypeids'])) {
-        $url_params[] = "courseTypeIds=" . urlencode($atts['coursetypeids']);
-    }
-    if (!empty($atts['locationid'])) {
-        $url_params[] = "locationId=" . urlencode($atts['locationid']);
-    }
-    if (!empty($atts['dayfilter'])) {
-        // Don't urlencode dayfilter to keep comma-separated format readable
-        $url_params[] = "dayFilter=" . $atts['dayfilter'];
-    }
-    if (!empty($atts['coursecategoryid'])) {
-        $url_params[] = "courseCategoryId=" . urlencode($atts['coursecategoryid']);
-    }
-    // showFilterMenu wird immer übergeben, da es einen Standardwert hat
-    $url_params[] = "showFilterMenu=" . urlencode($atts['showfiltermenu']);
-
-    // Cache-Buster hinzufügen
-    $url_params[] = "_v=" . KURSORGANIZER_CACHE_VERSION;
-    $url_params[] = "_cb=" . $cache_buster_value;
-
     // CSS-Parameter hinzufügen (Beispiel-CSS hat Priorität)
     $example_css_url = '';
+    $effective_css_url = '';
     if ($use_example_css) {
         // Verwende PHP-Endpoint statt direkter CSS-Datei für bessere CORS-Unterstützung
         // Der PHP-Endpoint setzt automatisch alle notwendigen CORS-Header
         $example_css_url = KURSORGANIZER_PLUGIN_URL . 'assets/css/external-css-example.php';
-        $url_params[] = "customCssUrl=" . urlencode($example_css_url);
+        $effective_css_url = $example_css_url;
     } elseif (!empty($custom_css_url)) {
-        $url_params[] = "customCssUrl=" . urlencode($custom_css_url);
+        $effective_css_url = $custom_css_url;
     }
 
     // MaxWidth-Parameter hinzufügen
     $max_width = isset($options['max_width']) ? trim($options['max_width']) : '1200px';
-    // Wenn leer, setze auf Default
-    if (empty($max_width)) {
-        $max_width = '1200px';
-    }
-    // Validiere und formatiere maxWidth-Wert
     $max_width = kursorganizer_format_max_width($max_width);
-    $url_params[] = "maxWidth=" . urlencode($max_width);
-
-    $iframe_src = esc_url($mainAppUrl) . "?" . implode("&", $url_params);
+    $iframe_src = KursOrganizer_Shortcode_URL_Builder::build(
+        $mainAppUrl,
+        $atts,
+        array(
+            'parent_url' => $parent_url,
+            'cache_version' => KURSORGANIZER_CACHE_VERSION,
+            'cache_buster' => $cache_buster_value,
+            'custom_css_url' => $effective_css_url,
+            'max_width' => $max_width,
+        )
+    );
 
     // Get debug mode setting
     $debug_mode = isset($options['debug_mode']) ? $options['debug_mode'] : false;
@@ -1714,7 +1504,7 @@ function kursOrganizer_iframe_shortcode($atts)
 
     // Inline-Style für das iframe: Verwende max-width basierend auf der Einstellung
     // Das erlaubt dem iframe, die eingestellte maximale Breite anzunehmen
-    $iframe_style = 'width: 1px; min-width: 100%; max-width: ' . esc_attr($max_width) . ';';
+    $iframe_style = 'width: 1px; min-width: 100%; max-width: ' . $max_width . ';';
 
     // CSS-Klassen am iFrame:
     //   - kursorganizer-iframe:  Haupt-Selector für iFrameResizer-Init
@@ -1724,13 +1514,24 @@ function kursOrganizer_iframe_shortcode($atts)
     //                            allen iFrames und ueberschreiben damit unsere iFrameResizer-Hoehe.
     //                            Auf Themes ohne diesen Code: reine Marker-Klasse, kein Effekt.
     // Weitere Theme-Compat-Klassen koennen hier ergaenzt werden, wenn neue Konflikte auftauchen.
-    $iframe_classes = apply_filters('kursorganizer_iframe_classes', [
+    $default_iframe_classes = array(
         'kursorganizer-iframe',
         'bt_skip_resize',
-    ]);
-    $iframe_class_attr = esc_attr(implode(' ', array_map('sanitize_html_class', $iframe_classes)));
+    );
+    $iframe_classes = apply_filters('kursorganizer_iframe_classes', $default_iframe_classes);
+    if (!is_array($iframe_classes)) {
+        $iframe_classes = $default_iframe_classes;
+    }
+    $iframe_classes = array_filter($iframe_classes, 'is_scalar');
+    $iframe_classes = array_values(array_filter(array_map('sanitize_html_class', $iframe_classes)));
 
-    $iframe_html = '<iframe id="' . $unique_id . '" class="' . $iframe_class_attr . '" frameborder="0" style="' . $iframe_style . '" src="' . $iframe_src . '"></iframe>';
+    $iframe_html = KursOrganizer_Shortcode_URL_Builder::render_iframe(
+        $unique_id,
+        $iframe_classes,
+        $iframe_style,
+        $iframe_src
+    );
+    kursorganizer_enqueue_iframe_resizer();
 
     // Optional: Platzhalter für Callback-Informationen (nur im Debug-Modus)
     $callback_html = $debug_mode ? '<p id="kursorganizer-callback-' . $iframe_counter . '"></p>' : '';
@@ -1794,61 +1595,86 @@ function kursOrganizer_iframe_shortcode($atts)
 }
 add_shortcode('kursorganizer_iframe', 'kursOrganizer_iframe_shortcode');
 
-/**
- * Skripte und Styles einbinden
- */
+/** Register the tenant-specific iframe resizer without loading it globally. */
 function kursorganizer_enqueue_scripts()
 {
-    // Get settings
-    $options = get_option('kursorganizer_settings');
-    $debug_mode = isset($options['debug_mode']) ? $options['debug_mode'] : false;
+    if (wp_script_is('iframe-resizer', 'registered')) {
+        return;
+    }
 
-    // jQuery von WordPress verwenden
-    wp_enqueue_script('jquery');
+    $options = get_option('kursorganizer_settings', array());
+    $iframe_resizer_url = !empty($options['iframe_resizer_url'])
+        ? esc_url_raw($options['iframe_resizer_url'])
+        : '';
 
-    $iframe_resizer_url = isset($options['iframe_resizer_url']) ?
-        $options['iframe_resizer_url'] :
-        'https://app.demo-schwimmschule.kursorganizer.com/build/js/iframeResizer.min.js';
+    if ($iframe_resizer_url === '' && !empty($options['main_app_url'])) {
+        $normalized_url = KursOrganizer_API::normalize_app_url($options['main_app_url']);
+        if (!is_wp_error($normalized_url)) {
+            $iframe_resizer_url = $normalized_url . 'js/iframeResizer.min.js';
+        }
+    }
 
-    // iframeResizer Skript einbinden
-    wp_enqueue_script(
+    if ($iframe_resizer_url === '') {
+        return;
+    }
+
+    wp_register_script(
         'iframe-resizer',
         $iframe_resizer_url,
         array('jquery'),
         KURSORGANIZER_CACHE_VERSION,
         true
     );
+}
 
-    // Inline-Skript für iframeResizer initialisieren
+/** Load and initialize iframe-resizer only after a shortcode is rendered. */
+function kursorganizer_enqueue_iframe_resizer()
+{
+    static $initialized = false;
+
+    kursorganizer_enqueue_scripts();
+    if (!wp_script_is('iframe-resizer', 'registered')) {
+        return;
+    }
+
+    wp_enqueue_script('iframe-resizer');
+    if ($initialized) {
+        return;
+    }
+    $initialized = true;
+
+    $options = get_option('kursorganizer_settings', array());
+    $debug_mode = !empty($options['debug_mode']);
+
     $inline_script = "
         jQuery(document).ready(function($) {
-            iFrameResize({
+            if (typeof window.iFrameResize !== 'function') {
+                return;
+            }
+            window.iFrameResize({
                 enablePublicMethods: false,
                 onResized: function (messageData) {" .
         ($debug_mode ? "
                     var callbackId = messageData.iframe.id.replace('iframe', 'callback');
-                    $('#' + callbackId).html(
-                        '<b>Frame ID:</b> ' + messageData.iframe.id +
-                        ' <b>Height:</b> ' + messageData.height +
-                        ' <b>Width:</b> ' + messageData.width +
-                        ' <b>Event type:</b> ' + messageData.type
+                    $('#' + callbackId).text(
+                        'Frame ID: ' + messageData.iframe.id +
+                        ' Height: ' + messageData.height +
+                        ' Width: ' + messageData.width +
+                        ' Event type: ' + messageData.type
                     );" : "") . "
                 },
                 onMessage: function (messageData) {" .
         ($debug_mode ? "
                     var callbackId = messageData.iframe.id.replace('iframe', 'callback');
-                    $('#' + callbackId).html(
-                        '<b>Frame ID:</b> ' + messageData.iframe.id +
-                        ' <b>Message:</b> ' + messageData.message
+                    $('#' + callbackId).text(
+                        'Frame ID: ' + messageData.iframe.id +
+                        ' Message: ' + String(messageData.message)
                     );" : "") . "
-                    alert(messageData.message);
                 },
                 onClosed: function (id) {" .
         ($debug_mode ? "
                     var callbackId = id.replace('iframe', 'callback');
-                    $('#' + callbackId).html(
-                        '<b>IFrame (</b>' + id + '<b>) removed from page.</b>'
-                    );" : "") . "
+                    $('#' + callbackId).text('IFrame (' + id + ') removed from page.');" : "") . "
                 },
             }, '.kursorganizer-iframe');
         });
@@ -1984,135 +1810,102 @@ function kursorganizer_test_org_id_ajax()
         return;
     }
 
-    // Use the validation function logic directly
-    $parsed = parse_url($url);
-    if (!$parsed || !isset($parsed['scheme']) || !isset($parsed['host'])) {
-        wp_send_json_error('Ungültige URL.');
+    $result = KursOrganizer_API::validate_organization_id($url, $org_id);
+    if (is_wp_error($result)) {
+        wp_send_json_error(kursorganizer_validation_error_message($result));
         return;
     }
 
-    // Validate and fix URL to ensure it ends with /build
-    if (strpos($parsed['host'], 'kursorganizer.com') !== false) {
-        $path = isset($parsed['path']) ? rtrim($parsed['path'], '/') : '';
-
-        // If path doesn't end with /build, add it
-        if ($path !== '/build') {
-            $url = rtrim($url, '/') . '/build';
-        }
-
-        // Add trailing slash
-        $url = trailingslashit($url);
-    } else {
-        // For non-kursorganizer.com domains, require /build
-        $path = isset($parsed['path']) ? rtrim($parsed['path'], '/') : '';
-        if ($path !== '/build') {
-            wp_send_json_error('Die URL muss auf "/build" enden. Beispiel: https://app.ihrefirma.kursorganizer.com/build/');
-            return;
-        }
-        $url = trailingslashit($url);
-    }
-
-    $origin = $parsed['scheme'] . '://' . $parsed['host'];
-    if (isset($parsed['port'])) {
-        $origin .= ':' . $parsed['port'];
-    }
-
-    // Determine API URL based on the input URL
-    $api_url = 'https://api.kursorganizer.com/graphql';
-    if (strpos($url, 'localhost') !== false || strpos($url, '127.0.0.1') !== false || strpos($url, '.local') !== false) {
-        $parsed_api = parse_url($url);
-        $port = isset($parsed_api['port']) ? $parsed_api['port'] : '3000';
-        $scheme = isset($parsed_api['scheme']) ? $parsed_api['scheme'] : 'http';
-        $host = isset($parsed_api['host']) ? $parsed_api['host'] : 'localhost';
-        $api_url = $scheme . '://' . $host . ':' . $port . '/graphql';
-    } elseif (strpos($url, '.stage.') !== false) {
-        $api_url = 'https://api.stage.kursorganizer.com/graphql';
-    }
-
-    // Query GetCompany to get organization ID directly
-    $query = 'query GetCompany {
-        companyPublic {
-            name
-            host
-            koOrganization {
-                id
-            }
-        }
-    }';
-
-    $headers = [
-        'Content-Type' => 'application/json',
-        'Accept' => 'application/json',
-        'Origin' => $origin,
-        'x-application-type' => 'end-user-app'
-    ];
-
-    $body = json_encode([
-        'query' => $query,
-        'operationName' => 'GetCompany',
-        'variables' => []
-    ]);
-
-    $response = wp_remote_post($api_url, [
-        'headers' => $headers,
-        'body' => $body,
-        'timeout' => 15,
-    ]);
-
-    if (is_wp_error($response)) {
-        wp_send_json_error('API-Fehler: ' . $response->get_error_message());
-        return;
-    }
-
-    $response_code = wp_remote_retrieve_response_code($response);
-    $response_body = wp_remote_retrieve_body($response);
-    $data = json_decode($response_body, true);
-
-    if (json_last_error() !== JSON_ERROR_NONE) {
-        wp_send_json_error('Fehler beim Parsen der API-Antwort. Bitte prüfen Sie, ob die URL korrekt ist.');
-        return;
-    }
-
-    // Check for GraphQL errors first
-    if (isset($data['errors'])) {
-        $error_message = $data['errors'][0]['message'] ?? 'Unbekannter API-Fehler';
-
-        // Provide user-friendly error messages
-        if (
-            strpos($error_message, 'Cannot return null for non-nullable field') !== false ||
-            strpos($error_message, 'null') !== false
-        ) {
-            wp_send_json_error('Die eingegebene URL ist ungültig oder es wurde keine Schwimmschule für diese URL gefunden. Bitte überprüfen Sie die URL und stellen Sie sicher, dass sie korrekt ist.');
-        } else {
-            wp_send_json_error('API-Fehler: ' . $error_message . '. Bitte überprüfen Sie die URL.');
-        }
-        return;
-    }
-
-    // Check if companyPublic is null (no company found for this URL)
-    if (!isset($data['data']['companyPublic']) || $data['data']['companyPublic'] === null) {
-        wp_send_json_error('Für die eingegebene URL wurde keine Schwimmschule gefunden. Bitte überprüfen Sie die URL und stellen Sie sicher, dass sie korrekt ist.');
-        return;
-    }
-
-    if (!isset($data['data']['companyPublic']['koOrganization']['id'])) {
-        wp_send_json_error('Die Organization ID konnte nicht aus der API-Antwort extrahiert werden. Bitte prüfen Sie die URL.');
-        return;
-    }
-
-    $api_org_id = $data['data']['companyPublic']['koOrganization']['id'];
-
-    // Compare IDs (case-insensitive)
-    $input_org_id_clean = strtolower(trim($org_id));
-    $api_org_id_clean = strtolower(trim($api_org_id));
-
-    if ($input_org_id_clean === $api_org_id_clean) {
-        wp_send_json_success('Die Organization ID stimmt mit der URL überein.');
-    } else {
-        wp_send_json_error('Die Organization ID stimmt nicht mit der URL überein.');
-    }
+    wp_send_json_success('Die Organization ID stimmt mit der URL überein.');
 }
 add_action('wp_ajax_kursorganizer_test_org_id', 'kursorganizer_test_org_id_ajax');
+
+/** Clear tenant caches and invalidate stale validation state after settings changes. */
+function kursorganizer_settings_updated($old_value, $new_value)
+{
+    $old_value = is_array($old_value) ? $old_value : array();
+    $new_value = is_array($new_value) ? $new_value : array();
+    $old_url = isset($old_value['main_app_url']) ? $old_value['main_app_url'] : '';
+    $new_url = isset($new_value['main_app_url']) ? $new_value['main_app_url'] : '';
+    $old_id = isset($old_value['ko_organization_id']) ? $old_value['ko_organization_id'] : '';
+    $new_id = isset($new_value['ko_organization_id']) ? $new_value['ko_organization_id'] : '';
+
+    if ($old_url === $new_url && $old_id === $new_id) {
+        return;
+    }
+
+    KursOrganizer_API::clear_cache_for_origin(KursOrganizer_API::get_origin_for_app_url($old_url));
+    KursOrganizer_API::clear_cache_for_origin(KursOrganizer_API::get_origin_for_app_url($new_url));
+
+    $current_buster = absint(get_option('kursorganizer_cache_buster', 1));
+    update_option('kursorganizer_cache_buster', $current_buster + 1);
+
+    if ($new_url !== '' && $new_id !== '' && !KursOrganizer_Validation_State::is_current($new_url, $new_id)) {
+        KursOrganizer_Validation_State::mark_unverified($new_url, $new_id);
+    }
+}
+add_action('update_option_kursorganizer_settings', 'kursorganizer_settings_updated', 10, 2);
+
+/** Ensure the recurring validation event exists. */
+function kursorganizer_ensure_validation_schedule()
+{
+    if (!wp_next_scheduled(KursOrganizer_Validation_State::CRON_HOOK)) {
+        wp_schedule_event(time() + 300, 'daily', KursOrganizer_Validation_State::CRON_HOOK);
+    }
+}
+add_action('init', 'kursorganizer_ensure_validation_schedule');
+
+/** Validate configured tenant data outside the public rendering path. */
+function kursorganizer_run_daily_validation()
+{
+    $options = get_option('kursorganizer_settings', array());
+    $url = isset($options['main_app_url']) ? trim($options['main_app_url']) : '';
+    $organization_id = isset($options['ko_organization_id']) ? trim($options['ko_organization_id']) : '';
+    if ($url === '' || $organization_id === '') {
+        return;
+    }
+
+    $result = KursOrganizer_API::validate_organization_id($url, $organization_id);
+    if (!is_wp_error($result)) {
+        KursOrganizer_Validation_State::mark_valid($url, $organization_id);
+        return;
+    }
+
+    if ($result->get_error_code() === 'organization_mismatch') {
+        KursOrganizer_Validation_State::mark_mismatch($url, $organization_id);
+        return;
+    }
+
+    KursOrganizer_Validation_State::mark_error($url, $organization_id, $result->get_error_code());
+}
+add_action(KursOrganizer_Validation_State::CRON_HOOK, 'kursorganizer_run_daily_validation');
+
+/** Show the last background validation result to administrators. */
+function kursorganizer_validation_admin_notice()
+{
+    if (!current_user_can('manage_options')) {
+        return;
+    }
+
+    $options = get_option('kursorganizer_settings', array());
+    $url = isset($options['main_app_url']) ? trim($options['main_app_url']) : '';
+    $organization_id = isset($options['ko_organization_id']) ? trim($options['ko_organization_id']) : '';
+    if ($url === '' || $organization_id === '' || !KursOrganizer_Validation_State::is_current($url, $organization_id)) {
+        return;
+    }
+
+    $state = KursOrganizer_Validation_State::get();
+    $settings_url = admin_url('admin.php?page=kursorganizer-settings');
+    if (isset($state['match_status']) && $state['match_status'] === 'mismatch') {
+        echo '<div class="notice notice-error"><p><strong>KursOrganizer:</strong> Die gespeicherte Organization ID stimmt nicht mehr mit der Web-App URL überein. Das iFrame wurde blockiert. <a href="' . esc_url($settings_url) . '">Einstellungen prüfen</a></p></div>';
+        return;
+    }
+
+    if (isset($state['last_check_status']) && $state['last_check_status'] === 'error') {
+        echo '<div class="notice notice-warning"><p><strong>KursOrganizer:</strong> Die automatische Organization-ID-Prüfung war zuletzt nicht möglich. Das iFrame bleibt mit der zuletzt bekannten Konfiguration aktiv. <a href="' . esc_url($settings_url) . '">Verbindung prüfen</a></p></div>';
+    }
+}
+add_action('admin_notices', 'kursorganizer_validation_admin_notice');
 
 /**
  * Clear WordPress object cache on plugin activation/update
@@ -2124,6 +1917,16 @@ function kursorganizer_activation_hook()
         KursOrganizer_API::clear_cache();
     }
 
+    $options = get_option('kursorganizer_settings', array());
+    if (
+        !empty($options['main_app_url'])
+        && !empty($options['ko_organization_id'])
+        && !KursOrganizer_Validation_State::is_current($options['main_app_url'], $options['ko_organization_id'])
+    ) {
+        KursOrganizer_Validation_State::mark_unverified($options['main_app_url'], $options['ko_organization_id']);
+    }
+    kursorganizer_ensure_validation_schedule();
+
     // Clear WordPress object cache
     wp_cache_flush();
 
@@ -2132,6 +1935,12 @@ function kursorganizer_activation_hook()
 }
 register_activation_hook(__FILE__, 'kursorganizer_activation_hook');
 
+function kursorganizer_deactivation_hook()
+{
+    wp_clear_scheduled_hook(KursOrganizer_Validation_State::CRON_HOOK);
+}
+register_deactivation_hook(__FILE__, 'kursorganizer_deactivation_hook');
+
 /**
  * Clear cache when plugin files are updated
  * This hook runs when WordPress detects plugin file changes
@@ -2139,7 +1948,7 @@ register_activation_hook(__FILE__, 'kursorganizer_activation_hook');
 function kursorganizer_check_version_update()
 {
     $stored_version = get_option('kursorganizer_plugin_version');
-    $current_version = KURSORGANIZER_CACHE_VERSION;
+    $current_version = KURSORGANIZER_VERSION;
 
     if ($stored_version !== $current_version) {
         // Version changed - clear all caches
@@ -2147,6 +1956,15 @@ function kursorganizer_check_version_update()
             KursOrganizer_API::clear_cache();
         }
         wp_cache_flush();
+        $options = get_option('kursorganizer_settings', array());
+        if (
+            !empty($options['main_app_url'])
+            && !empty($options['ko_organization_id'])
+            && !KursOrganizer_Validation_State::is_current($options['main_app_url'], $options['ko_organization_id'])
+        ) {
+            KursOrganizer_Validation_State::mark_unverified($options['main_app_url'], $options['ko_organization_id']);
+        }
+        kursorganizer_ensure_validation_schedule();
         update_option('kursorganizer_plugin_version', $current_version);
     }
 }

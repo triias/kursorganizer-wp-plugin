@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['7.4', '8.1', '8.4']
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+          tools: composer:v2
+
+      - name: Install test dependencies
+        run: composer install --no-interaction --prefer-dist
+
+      - name: PHPUnit
+        run: composer test
+
+      - name: Syntax checks
+        run: |
+          find . -name '*.php' -not -path './vendor/*' -print0 | xargs -0 -n1 php -l
+          node --check assets/js/admin.js
+          node --check scripts/check-changelog.mjs
+          node --check scripts/sync-version.mjs
+          bash -n deploy.sh scripts/build-release.sh
+
+      - name: Verify synchronized version
+        run: |
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          PLUGIN_VERSION=$(sed -n 's/^Version:[[:space:]]*//p' kursorganizer-wp-plugin.php)
+          README_VERSION=$(sed -n 's/^Stable tag:[[:space:]]*//p' README.md)
+          test "$PACKAGE_VERSION" = "$PLUGIN_VERSION"
+          test "$PACKAGE_VERSION" = "$README_VERSION"
+          grep -q "^## \[$PACKAGE_VERSION\]" CHANGELOG.md
+
+      - name: Build and verify release ZIP
+        if: matrix.php == '8.4'
+        run: bash scripts/build-release.sh

@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.2.6] - 2026-07-15
+### Security
+- Sämtliche Shortcode-Parameter werden vor dem URL-Aufbau typ- und formatbezogen validiert.
+- Die iFrame-URL wird mit WordPress-Query- und Escaping-Funktionen erzeugt; Attribut-Injection über Shortcode-Werte ist nicht mehr möglich.
+- Kundenspezifische Konfigurationsdateien wurden aus Repository und Historie entfernt.
+
+### Changed
+- Organization-ID-Prüfungen laufen beim Testen, Speichern und täglich im Hintergrund, aber nicht mehr in öffentlichen Seitenaufrufen.
+- Temporäre API-Ausfälle blockieren das iFrame nicht; ein bestätigter Mismatch blockiert es weiterhin.
+- API-Debug-Logs enthalten keine vollständigen Header oder Antworten mehr und setzen Plugin-Debug-Modus plus `WP_DEBUG` voraus.
+- Der iFrame-Resizer wird nur bei verwendetem Shortcode und von der konfigurierten Mandanten-Web-App geladen.
+- GitHub-Releases enthalten ein minimales Plugin-ZIP, das vom Updater bevorzugt wird.
+
+### Added
+- Persistenter Validation-State mit täglicher WP-Cron-Prüfung und Admin-Hinweisen.
+- PHPUnit-Tests und CI-Matrix für PHP 7.4, 8.1 und 8.4.
+
 ## [1.2.5] - 2026-05-07
 ### Fixed
 - Fehler „Aktualisierung fehlgeschlagen: Es wurde kein Plugin angegeben" beim Klick auf den „Jetzt aktualisieren"-Button im Plugin-Information-Popup behoben. Der Updater fuellt das WP-Update-Transient jetzt mit den Pflichtfeldern `plugin` (Plugin-Datei-Pfad) und `slug` (Verzeichnisname) statt nur `slug` (Pfad), damit WordPress' AJAX-Update-Endpoint die richtige Plugin-Datei findet.

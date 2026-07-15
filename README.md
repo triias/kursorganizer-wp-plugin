@@ -3,7 +3,7 @@ Contributors: KursOrganizer GmbH
 Tags: iframe, courses, kursorganizer, integration
 Requires at least: 5.0
 Tested up to: 6.9
-Stable tag: 1.2.5
+Stable tag: 1.2.6
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -92,6 +92,12 @@ Weitere Beispiele und Optionen finden Sie im Tab "Anleitungen" im Plugin.
 
 == Changelog ==
 
+= 1.2.6 =
+* Sicherheitsfix für Shortcode-Parameter und iFrame-Ausgabe
+* Organization-ID-Prüfung aus öffentlichen Seitenaufrufen entfernt und als tägliche Hintergrundprüfung umgesetzt
+* API-Logging reduziert und iFrame-Resizer nur noch bei tatsächlicher Shortcode-Nutzung geladen
+* Bereinigtes Plugin-ZIP als GitHub-Release-Asset
+
 = 1.2.3 =
 * Fix: iFrame wird auf WordPress-Seiten mit boldthemes-basierten Themes (Industrial, Construction, Architect) nicht mehr fälschlicherweise auf 16:9-Seitenverhältnis gestaucht (sichtbar besonders auf iOS beim Scrollen und am Desktop beim Resizen)
 * Offizielle boldthemes-Opt-out-Klasse `bt_skip_resize` wird automatisch an das iFrame angehängt; auf anderen Themes wirkungslos
@@ -140,4 +146,3 @@ Das Plugin bietet:
 * Shortcode Generator für individuelle Konfigurationen
 * Detaillierte Anleitungen und Beispiele
 * Test-Funktion zur Validierung der Einstellungen
-

@@ -15,6 +15,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+          tools: composer:v2
+
+      - name: Verify release candidate
+        run: |
+          composer install --no-interaction --prefer-dist
+          composer test
+          find . -name '*.php' -not -path './vendor/*' -print0 | xargs -0 -n1 php -l
+          node --check assets/js/admin.js
+          bash -n scripts/build-release.sh
+
       - name: Extract version from tag
         id: version
         env:
@@ -52,11 +67,25 @@ jobs:
             echo "Keine Changelog-Section fuer v$TAG_VERSION gefunden." > .release-notes.md
           fi
 
+      - name: Build curated plugin ZIP
+        run: bash scripts/build-release.sh
+
+      - name: Verify plugin ZIP
+        run: |
+          test -s dist/kursorganizer-wp-plugin.zip
+          unzip -Z1 dist/kursorganizer-wp-plugin.zip | grep -q '^kursorganizer-wp-plugin/kursorganizer-wp-plugin.php$'
+          if unzip -Z1 dist/kursorganizer-wp-plugin.zip | grep -Eq '(^|/)(Konfigurationsdaten-|tests/|vendor/|\.git|\.github/|deploy\.sh|package\.json|composer\.(json|lock))'; then
+            echo "::error::Release-ZIP enthaelt Entwicklungs- oder Mandantendaten"
+            exit 1
+          fi
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
           name: v${{ steps.version.outputs.version }}
           body_path: .release-notes.md
+          files: dist/kursorganizer-wp-plugin.zip
+          fail_on_unmatched_files: true
           draft: false
           prerelease: false

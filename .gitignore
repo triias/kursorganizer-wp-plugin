@@ -1,3 +1,7 @@
 node_modules/
 .DS_Store
 .release-notes.md
+vendor/
+dist/
+.phpunit.result.cache
+Konfigurationsdaten-*.txt

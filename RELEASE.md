@@ -4,6 +4,8 @@
 
 Das Plugin verwendet GitHub Actions, um automatisch Releases zu erstellen, wenn ein neuer Tag gepusht wird.
 
+Der Workflow erzeugt zusätzlich das bereinigte Asset `kursorganizer-wp-plugin.zip`. Dieses enthält nur die zur Laufzeit benötigten Plugin-Dateien und wird von Plugin-Versionen ab 1.2.6 gegenüber dem GitHub-Quell-Zipball bevorzugt.
+
 ### Schritt-für-Schritt Anleitung:
 
 1. **Versionsnummer aktualisieren**
@@ -96,4 +98,3 @@ Falls automatische Updates nicht funktionieren:
 Für private Repositories oder höhere Rate Limits kann ein GitHub Personal Access Token verwendet werden:
 - Gehe zu: WordPress Admin → KursOrganizer X → Einstellungen
 - Trage das Token im Feld "GitHub Access Token" ein (aktuell ausgeblendet)
-

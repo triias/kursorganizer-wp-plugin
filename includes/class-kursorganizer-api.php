@@ -11,6 +11,90 @@ if (!defined('ABSPATH')) {
 class KursOrganizer_API
 {
     /**
+     * Normalize an app URL and enforce the documented /build/ path.
+     *
+     * @return string|WP_Error
+     */
+    public static function normalize_app_url($url)
+    {
+        $url = esc_url_raw(trim((string) $url));
+        $parsed = parse_url($url);
+
+        if (
+            !$parsed
+            || empty($parsed['scheme'])
+            || empty($parsed['host'])
+            || !in_array(strtolower($parsed['scheme']), array('http', 'https'), true)
+        ) {
+            return new WP_Error('invalid_url', 'Die Web-App URL ist ungültig.');
+        }
+
+        if (isset($parsed['user']) || isset($parsed['pass']) || isset($parsed['query']) || isset($parsed['fragment'])) {
+            return new WP_Error('invalid_url', 'Die Web-App URL darf keine Zugangsdaten, Query-Parameter oder Fragmente enthalten.');
+        }
+
+        $path = isset($parsed['path']) ? rtrim($parsed['path'], '/') : '';
+        if ($path !== '' && $path !== '/build') {
+            return new WP_Error('url_missing_build', 'Die URL muss auf "/build" enden.');
+        }
+
+        $normalized = strtolower($parsed['scheme']) . '://' . strtolower($parsed['host']);
+        if (isset($parsed['port'])) {
+            $normalized .= ':' . absint($parsed['port']);
+        }
+
+        return $normalized . '/build/';
+    }
+
+    public static function is_kursorganizer_host($host)
+    {
+        $host = strtolower(trim((string) $host, '.'));
+        return $host === 'kursorganizer.com'
+            || (strlen($host) > strlen('.kursorganizer.com')
+                && substr($host, -strlen('.kursorganizer.com')) === '.kursorganizer.com');
+    }
+
+    private static function is_local_host($host)
+    {
+        $host = strtolower(trim((string) $host, '.'));
+        return $host === 'localhost'
+            || $host === '127.0.0.1'
+            || (strlen($host) > strlen('.local') && substr($host, -strlen('.local')) === '.local');
+    }
+
+    public static function get_api_url_for_app_url($main_app_url)
+    {
+        $parsed = parse_url($main_app_url);
+        $host = $parsed && isset($parsed['host']) ? $parsed['host'] : '';
+
+        if (self::is_local_host($host)) {
+            $port = isset($parsed['port']) ? absint($parsed['port']) : 3000;
+            $scheme = isset($parsed['scheme']) ? strtolower($parsed['scheme']) : 'http';
+            return $scheme . '://' . $host . ':' . $port . '/graphql';
+        }
+
+        if (strpos(strtolower($host), '.stage.') !== false) {
+            return 'https://api.stage.kursorganizer.com/graphql';
+        }
+
+        return 'https://api.kursorganizer.com/graphql';
+    }
+
+    public static function get_origin_for_app_url($main_app_url)
+    {
+        $parsed = parse_url($main_app_url);
+        if (!$parsed || empty($parsed['scheme']) || empty($parsed['host'])) {
+            return '';
+        }
+
+        $origin = strtolower($parsed['scheme']) . '://' . strtolower($parsed['host']);
+        if (isset($parsed['port'])) {
+            $origin .= ':' . absint($parsed['port']);
+        }
+        return $origin;
+    }
+
+    /**
      * Get the API endpoint URL based on the configured Web-App URL
      * 
      * @return string API endpoint URL
@@ -27,28 +111,7 @@ class KursOrganizer_API
             $main_app_url = self::auto_detect_app_url();
         }
 
-        // Check if this is a local development environment
-        if (
-            strpos($main_app_url, 'localhost') !== false ||
-            strpos($main_app_url, '127.0.0.1') !== false ||
-            strpos($main_app_url, 'local') !== false
-        ) {
-            // Extract port from URL if present, otherwise default to 3000
-            $parsed = parse_url($main_app_url);
-            $port = isset($parsed['port']) ? $parsed['port'] : '3000';
-            $scheme = isset($parsed['scheme']) ? $parsed['scheme'] : 'http';
-            $host = isset($parsed['host']) ? $parsed['host'] : 'localhost';
-
-            return $scheme . '://' . $host . ':' . $port . '/graphql';
-        }
-
-        // Check if this is a stage environment
-        if (strpos($main_app_url, '.stage.') !== false) {
-            return 'https://api.stage.kursorganizer.com/graphql';
-        }
-
-        // Default to production
-        return 'https://api.kursorganizer.com/graphql';
+        return self::get_api_url_for_app_url($main_app_url);
     }
 
     /**
@@ -60,8 +123,6 @@ class KursOrganizer_API
     public static function get_origin()
     {
         $options = get_option('kursorganizer_settings');
-        $api_url = self::get_api_url();
-
         // Get Web-App URL (auto-detect if not set)
         $main_app_url = isset($options['main_app_url']) ? trim($options['main_app_url']) : '';
 
@@ -70,30 +131,7 @@ class KursOrganizer_API
             $main_app_url = self::auto_detect_app_url();
         }
 
-        if (!empty($main_app_url)) {
-            // Remove trailing slash if present
-            $main_app_url = rtrim($main_app_url, '/');
-
-            // Parse URL and reconstruct without path
-            $parsed = parse_url($main_app_url);
-            if ($parsed && isset($parsed['scheme']) && isset($parsed['host'])) {
-                $origin = $parsed['scheme'] . '://' . $parsed['host'];
-
-                // Include port if present
-                if (isset($parsed['port'])) {
-                    $origin .= ':' . $parsed['port'];
-                }
-
-                return $origin;
-            }
-        }
-
-        // Fallback: If using local API, use localhost:8081 (as seen in GraphQL Playground)
-        if (strpos($api_url, 'localhost') !== false || strpos($api_url, '127.0.0.1') !== false) {
-            return 'http://localhost:8081';
-        }
-
-        return '';
+        return self::get_origin_for_app_url($main_app_url);
     }
 
     /**
@@ -122,7 +160,7 @@ class KursOrganizer_API
         }
 
         // If it's already a kursorganizer.com domain, use it as-is
-        if (strpos($host, 'kursorganizer.com') !== false) {
+        if (self::is_kursorganizer_host($host)) {
             // Check if it's already an app.* URL
             if (strpos($host, 'app.') === 0) {
                 return 'https://' . $host . '/build/';
@@ -156,8 +194,77 @@ class KursOrganizer_API
      */
     public static function query($query, $operation_name, $variables = [], $org_id = null, $additional_headers = [])
     {
-        $api_url = self::get_api_url();
-        $origin = self::get_origin();
+        return self::request(
+            self::get_api_url(),
+            self::get_origin(),
+            $query,
+            $operation_name,
+            $variables,
+            $org_id,
+            $additional_headers
+        );
+    }
+
+    /**
+     * Validate that an organization ID belongs to a Web-App URL.
+     *
+     * @return true|WP_Error
+     */
+    public static function validate_organization_id($input_url, $input_org_id)
+    {
+        $normalized_url = self::normalize_app_url($input_url);
+        if (is_wp_error($normalized_url)) {
+            return $normalized_url;
+        }
+
+        $input_org_id = strtolower(trim((string) $input_org_id));
+        if ($input_org_id === '') {
+            return new WP_Error('invalid_organization_id', 'Die Organization ID fehlt.');
+        }
+
+        $query = 'query GetCompany {
+            companyPublic {
+                name
+                host
+                koOrganization {
+                    id
+                }
+            }
+        }';
+
+        $result = self::request(
+            self::get_api_url_for_app_url($normalized_url),
+            self::get_origin_for_app_url($normalized_url),
+            $query,
+            'GetCompany',
+            array(),
+            null,
+            array('x-application-type' => 'end-user-app')
+        );
+
+        if (is_wp_error($result)) {
+            return $result;
+        }
+        if (!empty($result['errors'])) {
+            return new WP_Error('invalid_response', 'Die API hat die Organization ID nicht bestätigt.');
+        }
+        if (!isset($result['data']['companyPublic']) || $result['data']['companyPublic'] === null) {
+            return new WP_Error('company_not_found', 'Für diese Web-App URL wurde keine Organisation gefunden.');
+        }
+        if (empty($result['data']['companyPublic']['koOrganization']['id'])) {
+            return new WP_Error('invalid_response', 'Die API-Antwort enthält keine Organization ID.');
+        }
+
+        $api_org_id = strtolower(trim((string) $result['data']['companyPublic']['koOrganization']['id']));
+        if (!hash_equals($api_org_id, $input_org_id)) {
+            return new WP_Error('organization_mismatch', 'Die Organization ID stimmt nicht mit der Web-App URL überein.');
+        }
+
+        return true;
+    }
+
+    private static function request($api_url, $origin, $query, $operation_name, $variables, $org_id, $additional_headers)
+    {
 
         $headers = [
             'Content-Type' => 'application/json',
@@ -185,13 +292,11 @@ class KursOrganizer_API
             'variables' => $variables
         ]);
 
-        // Debug: Always log request details (for troubleshooting)
-        error_log('=== KursOrganizer API Request ===');
-        error_log('URL: ' . $api_url);
-        error_log('Origin: ' . $origin);
-        error_log('Headers: ' . print_r($headers, true));
-        error_log('Query: ' . $operation_name);
-        error_log('Body: ' . $body);
+        self::debug_log('request', array(
+            'operation' => $operation_name,
+            'url' => $api_url,
+            'origin' => $origin,
+        ));
 
         $response = wp_remote_post($api_url, [
             'headers' => $headers,
@@ -200,30 +305,43 @@ class KursOrganizer_API
         ]);
 
         if (is_wp_error($response)) {
-            // Enhanced error logging
-            error_log('KursOrganizer API Error: ' . $response->get_error_message());
-            return $response;
+            self::debug_log('transport_error', array('operation' => $operation_name));
+            return new WP_Error('api_unavailable', 'Die KursOrganizer API ist derzeit nicht erreichbar.');
         }
 
         $response_code = wp_remote_retrieve_response_code($response);
         $body = wp_remote_retrieve_body($response);
 
-        // Debug: Always log response details (for troubleshooting)
-        error_log('=== KursOrganizer API Response ===');
-        error_log('Status Code: ' . $response_code);
-        error_log('Full Body: ' . $body);
-        $response_headers = wp_remote_retrieve_headers($response);
-        error_log('Response Headers: ' . print_r($response_headers, true));
+        self::debug_log('response', array(
+            'operation' => $operation_name,
+            'status' => $response_code,
+        ));
+
+        if ($response_code < 200 || $response_code >= 300) {
+            return new WP_Error('http_error', 'Die KursOrganizer API hat einen HTTP-Fehler zurückgegeben.');
+        }
 
         $data = json_decode($body, true);
 
         if (json_last_error() !== JSON_ERROR_NONE) {
-            return new WP_Error('json_error', 'Failed to parse API response: ' . json_last_error_msg());
+            return new WP_Error('invalid_response', 'Die KursOrganizer API hat eine ungültige Antwort zurückgegeben.');
         }
 
         // Don't return error here - let the calling function handle it
         // This allows us to check for null companyPublic separately
         return $data;
+    }
+
+    private static function debug_log($event, $context = array())
+    {
+        $options = get_option('kursorganizer_settings', array());
+        $plugin_debug = !empty($options['debug_mode']);
+        if (!$plugin_debug || !defined('WP_DEBUG') || !WP_DEBUG) {
+            return;
+        }
+
+        $allowed = array_intersect_key($context, array_flip(array('operation', 'url', 'origin', 'status')));
+        error_log('KursOrganizer API ' . sanitize_key($event) . ': ' . wp_json_encode($allowed));
     }
 
     /**
@@ -274,28 +392,19 @@ class KursOrganizer_API
 
         // Check for GraphQL errors
         if (isset($result['errors'])) {
-            $error_message = $result['errors'][0]['message'] ?? 'Unknown GraphQL error';
-            $full_response = json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
             return new WP_Error(
-                'graphql_error',
-                sprintf(
-                    'API-Fehler: %s. Bitte prüfen Sie, ob die "KursOrganizer Web-App URL" korrekt ist und mit der konfigurierten Domain übereinstimmt. Aktuelle Origin: %s<br><br><strong>Vollständige API-Antwort:</strong><br><pre style="background: #f0f0f1; padding: 10px; overflow: auto; max-height: 300px;">%s</pre>',
-                    $error_message,
-                    $origin,
-                    esc_html($full_response)
-                )
+                'invalid_response',
+                'Die API konnte die Organisation für die konfigurierte Web-App URL nicht bestätigen.'
             );
         }
 
         // Check if companyPublic is null (API couldn't find company for this origin)
         if (!isset($result['data']['companyPublic']) || $result['data']['companyPublic'] === null) {
-            $full_response = json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
             return new WP_Error(
                 'company_not_found',
                 sprintf(
-                    'Keine Company für die Origin "%s" gefunden. Bitte stellen Sie sicher, dass die "KursOrganizer Web-App URL" in den Einstellungen korrekt ist und mit Ihrer KursOrganizer-Installation übereinstimmt.<br><br><strong>Vollständige API-Antwort:</strong><br><pre style="background: #f0f0f1; padding: 10px; overflow: auto; max-height: 300px;">%s</pre>',
-                    $origin,
-                    esc_html($full_response)
+                    'Keine Company für die Origin "%s" gefunden. Bitte prüfen Sie die KursOrganizer Web-App URL.',
+                    $origin
                 )
             );
         }
@@ -516,7 +625,15 @@ class KursOrganizer_API
      */
     public static function clear_cache()
     {
-        $origin_hash = md5(self::get_origin());
+        self::clear_cache_for_origin(self::get_origin());
+    }
+
+    public static function clear_cache_for_origin($origin)
+    {
+        if (empty($origin)) {
+            return;
+        }
+        $origin_hash = md5($origin);
         delete_transient('kursorganizer_org_id_' . $origin_hash);
         delete_transient('kursorganizer_course_types_' . $origin_hash);
         delete_transient('kursorganizer_locations_' . $origin_hash);
