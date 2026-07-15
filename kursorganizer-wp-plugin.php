@@ -3,7 +3,7 @@
 Plugin Name: KursOrganizer X iFrame
 Plugin URI: https://kursorganizer.com
 Description: Fügt einen Shortcode hinzu, um das WebModul des KursOrganizers per [kursorganizer_iframe] in eine WordPress-Seite einzubetten.
-Version: 1.2.8
+Version: 1.2.9
 Requires at least: 5.0
 Tested up to: 7.0
 Requires PHP: 7.4
@@ -20,7 +20,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('KURSORGANIZER_VERSION', '1.2.8');
+define('KURSORGANIZER_VERSION', '1.2.9');
 define('KURSORGANIZER_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('KURSORGANIZER_PLUGIN_URL', plugin_dir_url(__FILE__));
 

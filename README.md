@@ -3,7 +3,7 @@ Contributors: KursOrganizer GmbH
 Tags: iframe, courses, kursorganizer, integration
 Requires at least: 5.0
 Tested up to: 7.0
-Stable tag: 1.2.8
+Stable tag: 1.2.9
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -100,6 +100,10 @@ Weitere Beispiele und Optionen finden Sie im Tab "Anleitungen" im Plugin.
 * **Support**: Bei Fragen oder Problemen wenden Sie sich an support@kursorganizer.com
 
 == Changelog ==
+
+= 1.2.9 =
+* Versionsdetails-Popup für historische Installationsordner wie `kursorganizer-wp-plugin-main` repariert
+* Popup verwendet bei temporären GitHub-Fehlern die bereits zwischengespeicherten WordPress-Update-Daten
 
 = 1.2.8 =
 * Auswahl zwischen Kursen und Interessentenlisten per `listtype`-Shortcode-Attribut
