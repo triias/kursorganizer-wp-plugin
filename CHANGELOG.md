@@ -1,5 +1,8 @@
 # Changelog
 
+## [1.2.10] - 2026-10-19
+### Added
+- Steht `utm_source` oder `discountCode` in der URL der Seite (z. B. aus einem Newsletter-Link), reicht das Plugin die Werte an das KursOrganizer Web Modul weiter. Die Buchung speichert dann die Herkunft, und ein Rabattcode aus dem Link wird automatisch eingetragen. Das funktioniert auch mit Seiten-Caches.
 ## [1.2.9] - 2026-07-15
 ### Fixed
 - Das Versionsdetails-Popup erkennt jetzt sowohl den kanonischen Plugin-Slug als auch historische Installationsordner wie `kursorganizer-wp-plugin-main`, selbst wenn der WordPress-Update-Cache noch einen anderen Ordnernamen enthält.
