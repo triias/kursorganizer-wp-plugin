@@ -82,6 +82,56 @@ final class PluginUpdaterTest extends TestCase
         self::assertArrayNotHasKey('Authorization', $GLOBALS['ko_test_remote_get_args'][0]['args']['headers'] ?? array());
     }
 
+    public function testCurrentVersionIsListedAsNoUpdateSoAutoUpdatesCanBeEnabled(): void
+    {
+        $GLOBALS['ko_test_remote_response'] = array(
+            'response' => array('code' => 200),
+            'body' => json_encode(array(
+                'tag_name' => 'v1.2.10',
+                'html_url' => 'https://github.com/triias/kursorganizer-wp-plugin/releases/tag/v1.2.10',
+                'zipball_url' => 'https://github.com/source.zip',
+                'assets' => array(),
+            )),
+        );
+
+        $updater = new KursOrganizer_Plugin_Updater(array(
+            'slug' => '/plugins/kursorganizer-wp-plugin/kursorganizer-wp-plugin.php',
+            'api_url' => 'https://api.github.com/repos/triias/kursorganizer-wp-plugin',
+        ));
+        $file = 'kursorganizer-wp-plugin/kursorganizer-wp-plugin.php';
+
+        $result = $updater->modify_transient((object) array(
+            'checked' => array($file => '1.2.10'),
+            'response' => array(),
+        ));
+
+        self::assertArrayNotHasKey($file, $result->response);
+        self::assertSame('1.2.10', $result->no_update[$file]->new_version);
+        self::assertSame('kursorganizer-wp-plugin', $result->no_update[$file]->slug);
+
+        // Neuere Version: nur in response, ein alter no_update-Eintrag verschwindet.
+        $result = $updater->modify_transient((object) array(
+            'checked' => array($file => '1.2.9'),
+            'response' => array(),
+            'no_update' => array($file => (object) array('new_version' => '1.2.9')),
+        ));
+        self::assertSame('1.2.10', $result->response[$file]->new_version);
+        self::assertArrayNotHasKey($file, $result->no_update);
+    }
+
+    public function testPopupFilterRunsAfterOtherUpdaters(): void
+    {
+        new KursOrganizer_Plugin_Updater(array(
+            'slug' => '/plugins/kursorganizer-wp-plugin/kursorganizer-wp-plugin.php',
+            'api_url' => 'https://api.github.com/repos/triias/kursorganizer-wp-plugin',
+        ));
+
+        $popup = array_values(array_filter($GLOBALS['ko_test_filters'], function ($filter) {
+            return $filter['hook'] === 'plugins_api';
+        }));
+        self::assertGreaterThan(10, $popup[0]['priority']);
+    }
+
     public function testUpdaterRegistersBeforeWordPressUpdateChecksCanRun(): void
     {
         new KursOrganizer_Plugin_Updater(array(

@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.2.11] - 2026-10-19
+### Fixed
+- In der Plugin-Liste lassen sich automatische Aktualisierungen jetzt auch dann einschalten, wenn das Plugin bereits aktuell ist. Bisher fehlte der Schalter, solange kein Update anstand.
+- „Details der Version anzeigen“ zeigt die Versionsdetails auch dann, wenn ein anderes Plugin oder Theme mit eigenem Updater installiert ist. Bisher konnte dort „Plugin not found“ erscheinen.
 ## [1.2.10] - 2026-10-19
 ### Added
 - Steht `utm_source` oder `discountCode` in der URL der Seite (z. B. aus einem Newsletter-Link), reicht das Plugin die Werte an das KursOrganizer Web Modul weiter. Die Buchung speichert dann die Herkunft, und ein Rabattcode aus dem Link wird automatisch eingetragen. Das funktioniert auch mit Seiten-Caches.

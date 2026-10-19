@@ -32,7 +32,9 @@ class KursOrganizer_Plugin_Updater
 
         // Hook into WordPress Update processes
         add_filter('pre_set_site_transient_update_plugins', array($this, 'modify_transient'), 10, 1);
-        add_filter('plugins_api', array($this, 'plugin_popup'), 10, 3);
+        // Spät registrieren: Andere Updater (Themes, Plugins) geben bei fremden Slugs oft pauschal false zurück
+        // und überschreiben damit eine frühere Antwort; WordPress fragt dann wordpress.org („Plugin not found“).
+        add_filter('plugins_api', array($this, 'plugin_popup'), 999, 3);
         add_filter('upgrader_post_install', array($this, 'after_install'), 10, 3);
     }
 
@@ -56,27 +58,38 @@ class KursOrganizer_Plugin_Updater
             $github_version = ltrim($this->github_response->tag_name, 'v');
             $current_version = $transient->checked[$this->plugin];
 
-            if (version_compare($github_version, $current_version, '>')) {
-                // Pflichtfelder fuer WordPress' AJAX-Update-Endpoint:
-                //   plugin: Pfad zur Plugin-Datei (z. B. "kursorganizer-wp-plugin/kursorganizer-wp-plugin.php")
-                //   slug:   Verzeichnisname (NICHT der Pfad!) — sonst schlaegt der "Jetzt aktualisieren"-Button im
-                //           Plugin-Information-Popup mit "Es wurde kein Plugin angegeben" fehl.
-                $plugin_dir_slug = dirname($this->plugin);
-                $plugin = array(
-                    'id'          => "github.com/{$plugin_dir_slug}",
-                    'plugin'      => $this->plugin,
-                    'slug'        => $plugin_dir_slug,
-                    'new_version' => $github_version,
-                    'url'         => isset($this->github_response->html_url) ? $this->github_response->html_url : '',
-                    'package'     => $this->get_download_url(),
-                    'icons'       => $this->get_icons(),
-                    'banners'     => array(),
-                    'banners_rtl' => array(),
-                    'tested'      => '',
-                    'requires_php' => '',
-                    'compatibility' => new \stdClass(),
-                );
+            // Pflichtfelder fuer WordPress' AJAX-Update-Endpoint:
+            //   plugin: Pfad zur Plugin-Datei (z. B. "kursorganizer-wp-plugin/kursorganizer-wp-plugin.php")
+            //   slug:   Verzeichnisname (NICHT der Pfad!) — sonst schlaegt der "Jetzt aktualisieren"-Button im
+            //           Plugin-Information-Popup mit "Es wurde kein Plugin angegeben" fehl.
+            $plugin_dir_slug = dirname($this->plugin);
+            $is_newer = version_compare($github_version, $current_version, '>');
+            $plugin = array(
+                'id'          => "github.com/{$plugin_dir_slug}",
+                'plugin'      => $this->plugin,
+                'slug'        => $plugin_dir_slug,
+                'new_version' => $is_newer ? $github_version : $current_version,
+                'url'         => isset($this->github_response->html_url) ? $this->github_response->html_url : '',
+                'package'     => $this->get_download_url(),
+                'icons'       => $this->get_icons(),
+                'banners'     => array(),
+                'banners_rtl' => array(),
+                'tested'      => '',
+                'requires_php' => '',
+                'compatibility' => new \stdClass(),
+            );
+            if ($is_newer) {
                 $transient->response[$this->plugin] = (object) $plugin;
+                if (isset($transient->no_update) && is_array($transient->no_update)) {
+                    unset($transient->no_update[$this->plugin]);
+                }
+            } else {
+                // Auch ohne Update eintragen: Nur Plugins in response oder no_update bekommen in der
+                // Plugin-Liste den Schalter „Automatische Aktualisierungen aktivieren“.
+                if (!isset($transient->no_update) || !is_array($transient->no_update)) {
+                    $transient->no_update = array();
+                }
+                $transient->no_update[$this->plugin] = (object) $plugin;
             }
         }
 
