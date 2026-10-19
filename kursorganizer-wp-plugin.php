@@ -1671,7 +1671,30 @@ function kursorganizer_enqueue_iframe_resizer()
     $options = get_option('kursorganizer_settings', array());
     $debug_mode = !empty($options['debug_mode']);
 
+    // Kampagnen-Parameter der Seiten-URL (z. B. aus einem Newsletter-Link) an die Web-App durchreichen.
+    // Der Shortcode baut parentUrl serverseitig aus dem Permalink, ohne Query; bei Seiten-Caches sähe PHP die
+    // Query ohnehin nicht. Deshalb ergänzt der Browser die erlaubten Parameter. Nur wenn einer davon in der
+    // Seiten-URL steht, wird die iFrame-URL geändert (und der iFrame einmal neu geladen).
     $inline_script = "
+        (function () {
+            var passThrough = ['utm_source', 'discountCode'];
+            try {
+                var page = new URLSearchParams(window.location.search);
+                var found = passThrough.filter(function (key) { return page.get(key); });
+                if (!found.length) {
+                    return;
+                }
+                document.querySelectorAll('iframe.kursorganizer-iframe').forEach(function (iframe) {
+                    var src = new URL(iframe.getAttribute('src'), window.location.href);
+                    var parent = new URL(src.searchParams.get('parentUrl') || window.location.href.split('?')[0]);
+                    found.forEach(function (key) { parent.searchParams.set(key, page.get(key)); });
+                    src.searchParams.set('parentUrl', parent.toString());
+                    iframe.setAttribute('src', src.toString());
+                });
+            } catch (error) {
+                // Alte Browser ohne URL-API: iFrame bleibt unverändert.
+            }
+        })();
         jQuery(document).ready(function($) {
             if (typeof window.iFrameResize !== 'function') {
                 return;
