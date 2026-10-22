@@ -465,7 +465,9 @@ function kursorganizer_embed_mode_field_callback()
         auf Ihrer Domain und ist für Suchmaschinen und KI-Assistenten lesbar. Lädt das Modul nicht, zeigt das Plugin
         automatisch das iFrame.<br>
         Einzelne Seiten können die Einstellung mit <code>[kursorganizer_iframe mode="embed"]</code> oder
-        <code>mode="iframe"</code> überschreiben. Zum Zurückschalten genügt es, hier wieder iFrame zu wählen.
+        <code>mode="iframe"</code> überschreiben. Zum Zurückschalten genügt es, hier wieder iFrame zu wählen.<br>
+        Hinweis: Die CSS-Einstellungen unten wirken nur im iFrame; je Seite läuft höchstens ein Embed, weitere
+        Shortcodes derselben Seite bleiben iFrames.
     </p>
 <?php
 }
@@ -925,7 +927,7 @@ function kursorganizer_anleitungen_tab_content()
         <h3>Einbindung ohne iFrame (Embed-Modus)</h3>
         <p>Das Web Modul wird direkt in die Seite eingebaut; die Kursliste steht auf Ihrer Domain. Standard für alle Seiten in den Einstellungen („Einbindungsart“), je Seite überschreibbar:</p>
         <code>[kursorganizer_iframe mode="embed"]</code>
-        <p>Zurück zum iFrame auf einer Seite: <code>[kursorganizer_iframe mode="iframe"]</code>. Alle anderen Attribute funktionieren in beiden Arten.</p>
+        <p>Zurück zum iFrame auf einer Seite: <code>[kursorganizer_iframe mode="iframe"]</code>. Alle Shortcode-Attribute funktionieren in beiden Arten. Nur das erste Embed einer Seite wird ohne iFrame eingebaut, weitere Shortcodes derselben Seite bleiben iFrames. Die CSS-Einstellungen („CSS-Datei URL“, „Beispiel-CSS“) wirken nur im iFrame.</p>
 
         <h3>Kurssuche nach Stadt</h3>
         <p>Zeigt alle Kurse in einer bestimmten Stadt an:</p>
@@ -1593,13 +1595,19 @@ function kursOrganizer_iframe_shortcode($atts)
     $iframe_classes = array_filter($iframe_classes, 'is_scalar');
     $iframe_classes = array_values(array_filter(array_map('sanitize_html_class', $iframe_classes)));
 
-    if ($embed_mode === 'embed') {
-        // Embed ohne iFrame (ADR 0019 in ko-X-main): <div data-ko-embed …> plus Loader der Web-App;
-        // der iframe-resizer wird trotzdem geladen, damit der Rückfall des Loaders das iFrame messen kann.
+    // Das Web Modul kann nur einmal je Seite als Embed laufen (Loader und Bundle bedienen ein Element);
+    // weitere Shortcodes derselben Anfrage bleiben iFrames.
+    static $embed_rendered = false;
+    if ($embed_mode === 'embed' && !$embed_rendered) {
+        $embed_rendered = true;
+        // Embed ohne iFrame (ADR 0019 in ko-X-main): <div data-ko-embed …> plus Loader der Web-App.
+        // Der iframe-resizer wird trotzdem geladen: das Plugin-Init trifft kein iFrame mehr, aber der
+        // Loader ruft window.iFrameResize selbst auf, wenn er auf das iFrame zurückfällt.
         $iframe_html = KursOrganizer_Shortcode_URL_Builder::render_embed(
             'kursorganizer-embed-' . $iframe_counter,
             KursOrganizer_Shortcode_URL_Builder::params($atts, $url_context),
-            $iframe_src
+            $iframe_src,
+            KursOrganizer_Shortcode_URL_Builder::render_iframe($unique_id, $iframe_classes, $iframe_style, $iframe_src)
         );
         kursorganizer_enqueue_embed_loader($mainAppUrl);
     } else {
@@ -1687,13 +1695,61 @@ function kursorganizer_enqueue_embed_loader($main_app_url)
         return;
     }
     $enqueued = true;
-    // Version steckt als _v in der URL; null verhindert ein zweites ?ver=
+    // _v = Plugin-Cache-Version: der Loader selbst kommt ohne Cache von der Web-App und versioniert das
+    // Bundle mit eigenem ?v=; _v hilft nur, wenn ein CDN oder Cache-Plugin den Loader doch festhält.
+    // null als Version verhindert ein zweites ?ver=.
     wp_enqueue_script(
         'kursorganizer-embed-loader',
         KursOrganizer_Shortcode_URL_Builder::embed_loader_url($normalized_url, KURSORGANIZER_CACHE_VERSION),
         array(),
         null,
         true
+    );
+    // Sicherheitsnetz, falls der Loader selbst nicht läuft (404, CSP, Cache-Plugin, Theme ohne wp_footer):
+    // läuft direkt nach dem Skript-Tag, auch wenn das externe Skript scheitert, und setzt dann das
+    // iFrame aus data-fallback-src ein. Vorher reicht es Kampagnen-Parameter der Seiten-URL
+    // (utm_source, discountCode) in die Rückfall-Adresse durch, wie das Inline-Skript beim iFrame.
+    wp_add_inline_script(
+        'kursorganizer-embed-loader',
+        "(function () {
+            var nodes = document.querySelectorAll('[data-ko-embed]');
+            if (!nodes.length) { return; }
+            try {
+                var page = new URLSearchParams(window.location.search);
+                var found = ['utm_source', 'discountCode'].filter(function (key) { return page.get(key); });
+                if (found.length) {
+                    nodes.forEach(function (node) {
+                        var src = node.getAttribute('data-fallback-src');
+                        if (!src) { return; }
+                        var url = new URL(src, window.location.href);
+                        var parent = new URL(url.searchParams.get('parentUrl') || window.location.href.split('?')[0]);
+                        found.forEach(function (key) { parent.searchParams.set(key, page.get(key)); });
+                        url.searchParams.set('parentUrl', parent.toString());
+                        node.setAttribute('data-fallback-src', url.toString());
+                    });
+                }
+            } catch (error) {
+                // Alte Browser ohne URL-API: Rückfall-Adresse bleibt unverändert.
+            }
+            if (window.__koEmbedLoader) { return; }
+            nodes.forEach(function (node) {
+                var src = node.getAttribute('data-fallback-src') || '';
+                if (!/^https?:\\/\\//i.test(src) || node.querySelector('iframe')) { return; }
+                node.setAttribute('data-ko-embed-state', 'fallback');
+                node.innerHTML = '';
+                var frame = document.createElement('iframe');
+                frame.className = 'kursorganizer-iframe bt_skip_resize';
+                frame.title = 'KursOrganizer';
+                frame.setAttribute('frameborder', '0');
+                frame.style.cssText = 'width:1px;min-width:100%;max-width:' + (node.getAttribute('data-max-width') || '100%');
+                frame.src = src;
+                node.appendChild(frame);
+                if (typeof window.iFrameResize === 'function') {
+                    try { window.iFrameResize({ checkOrigin: false, heightCalculationMethod: 'lowestElement' }, frame); } catch (e) {}
+                }
+            });
+        })();",
+        'after'
     );
 }
 

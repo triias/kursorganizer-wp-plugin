@@ -159,6 +159,7 @@ final class ShortcodeUrlBuilderTest extends TestCase
         self::assertStringContainsString('data-show-filter-menu="false"', $html);
         self::assertStringContainsString('data-max-width="90%"', $html);
         self::assertStringContainsString('data-fallback-src="' . esc_attr($fallback) . '"', $html);
+        self::assertStringContainsString(' style="min-height:400px"', $html);
         self::assertStringEndsWith('></div>', $html);
         // iFrame-only: parentUrl, Cache-Parameter, customCssUrl
         self::assertStringNotContainsString('data-parent-url', $html);
@@ -173,5 +174,13 @@ final class ShortcodeUrlBuilderTest extends TestCase
         $html = KursOrganizer_Shortcode_URL_Builder::render_embed('id-1', $params, 'https://app.example.kursorganizer.com/build/?x=1');
         self::assertStringNotContainsString('" onmouseover="', $html);
         self::assertStringContainsString('data-city="x&quot; onmouseover=&quot;alert(1)"', $html);
+    }
+
+    public function testRenderEmbedWrapsTheIframeInNoscript(): void
+    {
+        $iframe = KursOrganizer_Shortcode_URL_Builder::render_iframe('kursorganizer-iframe-1', array('kursorganizer-iframe'), 'width:1px', 'https://app.example.kursorganizer.com/build/?x=1');
+        $html = KursOrganizer_Shortcode_URL_Builder::render_embed('kursorganizer-embed-1', array('maxWidth' => '1200px'), 'https://app.example.kursorganizer.com/build/?x=1', $iframe);
+        self::assertStringContainsString('<noscript><iframe id="kursorganizer-iframe-1"', $html);
+        self::assertStringEndsWith('</iframe></noscript></div>', $html);
     }
 }

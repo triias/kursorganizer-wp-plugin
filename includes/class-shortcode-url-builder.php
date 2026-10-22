@@ -143,12 +143,16 @@ class KursOrganizer_Shortcode_URL_Builder
      * liefert sie als dataset.locationId usw.); parentUrl, Cache-Parameter und customCssUrl bleiben
      * iFrame-only. data-fallback-src ist die vollständige iFrame-URL für den Rückfall des Loaders.
      *
+     * Enthält ein <noscript>-iFrame, damit ohne JavaScript die Kursliste wie bisher erscheint, und eine
+     * Mindesthöhe gegen Layout-Sprünge, bis der Loader das Modul einsetzt.
+     *
      * @param string $id Element id.
      * @param array $params Result of self::params().
      * @param string $fallback_src Full iframe URL.
+     * @param string $noscript_iframe_html Optional iframe markup for <noscript>.
      * @return string
      */
-    public static function render_embed($id, $params, $fallback_src)
+    public static function render_embed($id, $params, $fallback_src, $noscript_iframe_html = '')
     {
         $iframe_only = array('parentUrl', '_v', '_cb', 'customCssUrl');
         $attributes = array('id' => $id, 'class' => 'kursorganizer-embed');
@@ -165,7 +169,9 @@ class KursOrganizer_Shortcode_URL_Builder
         foreach ($attributes as $name => $value) {
             $html .= ' ' . $name . '="' . esc_attr($value) . '"';
         }
-        return $html . '></div>';
+        $html .= ' style="min-height:400px"';
+        $noscript = $noscript_iframe_html !== '' ? '<noscript>' . $noscript_iframe_html . '</noscript>' : '';
+        return $html . '>' . $noscript . '</div>';
     }
 
     /**
