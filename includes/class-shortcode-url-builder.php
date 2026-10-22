@@ -36,6 +36,18 @@ class KursOrganizer_Shortcode_URL_Builder
      */
     public static function build($base_url, $atts, $context)
     {
+        return esc_url_raw(add_query_arg(self::params($atts, $context), esc_url_raw($base_url)));
+    }
+
+    /**
+     * Query parameters of the iframe URL, also the source of the data-* attributes in embed mode.
+     *
+     * @param array $atts Shortcode attributes.
+     * @param array $context Runtime parameters.
+     * @return array<string, string|int>
+     */
+    public static function params($atts, $context)
+    {
         $params = array();
 
         if (!empty($context['parent_url'])) {
@@ -93,7 +105,67 @@ class KursOrganizer_Shortcode_URL_Builder
             isset($context['max_width']) ? $context['max_width'] : '1200px'
         );
 
-        return esc_url_raw(add_query_arg($params, esc_url_raw($base_url)));
+        return $params;
+    }
+
+    /**
+     * Einbindungsart: Shortcode-Attribut `mode` schlägt die Plugin-Einstellung; alles Unbekannte ist iFrame.
+     *
+     * @param string|null $attribute Shortcode attribute `mode`.
+     * @param string|null $setting Plugin setting `embed_mode`.
+     * @return string "iframe" or "embed"
+     */
+    public static function resolve_mode($attribute, $setting)
+    {
+        $attribute = strtolower(trim((string) $attribute));
+        if (in_array($attribute, array('iframe', 'embed'), true)) {
+            return $attribute;
+        }
+        return strtolower(trim((string) $setting)) === 'embed' ? 'embed' : 'iframe';
+    }
+
+    /**
+     * Loader des Embed-Modus: liegt neben dem iFrame-Build unter /embed/ derselben Web-App.
+     *
+     * @param string $normalized_app_url Result of KursOrganizer_API::normalize_app_url (…/build/).
+     * @param string $cache_version Cache-busting version.
+     * @return string
+     */
+    public static function embed_loader_url($normalized_app_url, $cache_version)
+    {
+        $base = preg_replace('#/build/$#', '/embed/', (string) $normalized_app_url);
+        return esc_url_raw(add_query_arg(array('_v' => sanitize_text_field($cache_version)), $base . 'embed.js'));
+    }
+
+    /**
+     * Embed-Modus: statt des iFrames ein <div data-ko-embed …>, das der Loader (embed.js) befüllt.
+     * Dieselben Parameter wie die iFrame-URL als data-Attribute (camelCase → kebab-case, der Browser
+     * liefert sie als dataset.locationId usw.); parentUrl, Cache-Parameter und customCssUrl bleiben
+     * iFrame-only. data-fallback-src ist die vollständige iFrame-URL für den Rückfall des Loaders.
+     *
+     * @param string $id Element id.
+     * @param array $params Result of self::params().
+     * @param string $fallback_src Full iframe URL.
+     * @return string
+     */
+    public static function render_embed($id, $params, $fallback_src)
+    {
+        $iframe_only = array('parentUrl', '_v', '_cb', 'customCssUrl');
+        $attributes = array('id' => $id, 'class' => 'kursorganizer-embed');
+        foreach ($params as $key => $value) {
+            if (in_array($key, $iframe_only, true) || $value === '' || $value === null) {
+                continue;
+            }
+            $name = 'data-' . strtolower(preg_replace('/([a-z0-9])([A-Z])/', '$1-$2', (string) $key));
+            $attributes[$name] = (string) $value;
+        }
+        $attributes['data-fallback-src'] = (string) $fallback_src;
+
+        $html = '<div data-ko-embed';
+        foreach ($attributes as $name => $value) {
+            $html .= ' ' . $name . '="' . esc_attr($value) . '"';
+        }
+        return $html . '></div>';
     }
 
     /**

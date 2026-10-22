@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.3.0] - 2026-10-23
+### Added
+- Neue Einbindungsart „Embed ohne iFrame“: Einstellung „Einbindungsart“ (Standard bleibt iFrame) und Shortcode-Attribut `mode="embed"` bzw. `mode="iframe"` je Seite. Im Embed-Modus baut das Plugin das Web Modul direkt in die Seite ein, die Kursliste steht damit auf der Domain der Schule. Lädt das Modul nicht, zeigt der Loader automatisch das bisherige iFrame. Zurückschalten jederzeit über die Einstellung.
+
 ## [1.2.11] - 2026-10-19
 ### Fixed
 - In der Plugin-Liste lassen sich automatische Aktualisierungen jetzt auch dann einschalten, wenn das Plugin bereits aktuell ist. Bisher fehlte der Schalter, solange kein Update anstand.
