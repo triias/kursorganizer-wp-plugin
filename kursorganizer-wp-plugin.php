@@ -1707,21 +1707,28 @@ function kursorganizer_enqueue_embed_loader($main_app_url)
     );
     // Sicherheitsnetz, falls der Loader selbst nicht läuft (404, CSP, Cache-Plugin, Theme ohne wp_footer):
     // läuft direkt nach dem Skript-Tag, auch wenn das externe Skript scheitert, und setzt dann das
-    // iFrame aus data-fallback-src ein. Vorher reicht es Kampagnen-Parameter der Seiten-URL
+    // iFrame aus data-fallback-src ein. Nur für Container, die dieses Plugin gerendert hat
+    // (id kursorganizer-embed-N), nur für Adressen im Origin der konfigurierten Web-App, Breite nach
+    // demselben Muster wie serverseitig. Vorher reicht es Kampagnen-Parameter der Seiten-URL
     // (utm_source, discountCode) in die Rückfall-Adresse durch, wie das Inline-Skript beim iFrame.
+    $app_origin = KursOrganizer_API::get_origin_for_app_url($normalized_url);
     wp_add_inline_script(
         'kursorganizer-embed-loader',
         "(function () {
-            var nodes = document.querySelectorAll('[data-ko-embed]');
-            if (!nodes.length) { return; }
+            var appOrigin = " . wp_json_encode($app_origin) . ";
+            var nodes = Array.prototype.filter.call(document.querySelectorAll('[data-ko-embed]'), function (node) {
+                return typeof node.id === 'string' && node.id.indexOf('kursorganizer-embed-') === 0;
+            });
+            if (!nodes.length || !appOrigin) { return; }
+            var isOurs = function (src) { return typeof src === 'string' && src.indexOf(appOrigin + '/') === 0; };
             try {
                 var page = new URLSearchParams(window.location.search);
                 var found = ['utm_source', 'discountCode'].filter(function (key) { return page.get(key); });
                 if (found.length) {
                     nodes.forEach(function (node) {
                         var src = node.getAttribute('data-fallback-src');
-                        if (!src) { return; }
-                        var url = new URL(src, window.location.href);
+                        if (!isOurs(src)) { return; }
+                        var url = new URL(src);
                         var parent = new URL(url.searchParams.get('parentUrl') || window.location.href.split('?')[0]);
                         found.forEach(function (key) { parent.searchParams.set(key, page.get(key)); });
                         url.searchParams.set('parentUrl', parent.toString());
@@ -1734,18 +1741,20 @@ function kursorganizer_enqueue_embed_loader($main_app_url)
             if (window.__koEmbedLoader) { return; }
             nodes.forEach(function (node) {
                 var src = node.getAttribute('data-fallback-src') || '';
-                if (!/^https?:\\/\\//i.test(src) || node.querySelector('iframe')) { return; }
+                if (!isOurs(src) || node.querySelector('iframe')) { return; }
+                var maxWidth = node.getAttribute('data-max-width') || '';
+                if (!/^\\d+(\\.\\d+)?(px|%|em|rem|vh|vw)$/.test(maxWidth)) { maxWidth = '100%'; }
                 node.setAttribute('data-ko-embed-state', 'fallback');
                 node.innerHTML = '';
                 var frame = document.createElement('iframe');
                 frame.className = 'kursorganizer-iframe bt_skip_resize';
                 frame.title = 'KursOrganizer';
                 frame.setAttribute('frameborder', '0');
-                frame.style.cssText = 'width:1px;min-width:100%;max-width:' + (node.getAttribute('data-max-width') || '100%');
+                frame.style.cssText = 'width:1px;min-width:100%;max-width:' + maxWidth;
                 frame.src = src;
                 node.appendChild(frame);
                 if (typeof window.iFrameResize === 'function') {
-                    try { window.iFrameResize({ checkOrigin: false, heightCalculationMethod: 'lowestElement' }, frame); } catch (e) {}
+                    try { window.iFrameResize({ checkOrigin: [appOrigin], heightCalculationMethod: 'lowestElement' }, frame); } catch (e) {}
                 }
             });
         })();",
