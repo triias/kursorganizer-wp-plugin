@@ -123,6 +123,14 @@ function kursorganizer_settings_init()
         'kursorganizer_main_section'
     );
 
+    add_settings_field(
+        'embed_mode',
+        'Einbindungsart',
+        'kursorganizer_embed_mode_field_callback',
+        'kursorganizer-settings',
+        'kursorganizer_main_section'
+    );
+
     add_settings_section(
         'kursorganizer_debug_section',
         'Debug-Einstellungen',
@@ -215,6 +223,11 @@ function kursorganizer_sanitize_settings($input)
         $new_input['ko_organization_id'] = sanitize_text_field(trim($input['ko_organization_id']));
     }
     // Wenn nicht gesetzt, behalte den bestehenden Wert (bereits in $new_input)
+
+    // Einbindungsart: iFrame (Standard) oder Embed ohne iFrame; alles andere fällt auf iFrame zurück
+    if (isset($input['embed_mode'])) {
+        $new_input['embed_mode'] = KursOrganizer_Shortcode_URL_Builder::resolve_mode($input['embed_mode'], 'iframe');
+    }
 
     // Checkboxen: Wenn nicht gesetzt, ist der Wert false
     // Stelle sicher, dass sie immer als Boolean gespeichert werden
@@ -434,6 +447,29 @@ function kursorganizer_auto_detect_app_url()
 
     // Fallback: use host as-is
     return 'https://app.' . $host . '.kursorganizer.com/build/';
+}
+
+// Embed mode field callback
+function kursorganizer_embed_mode_field_callback()
+{
+    $options = get_option('kursorganizer_settings');
+    $mode = KursOrganizer_Shortcode_URL_Builder::resolve_mode('', isset($options['embed_mode']) ? $options['embed_mode'] : 'iframe');
+?>
+    <select name='kursorganizer_settings[embed_mode]' id="embed_mode">
+        <option value='iframe' <?php selected($mode, 'iframe'); ?>>iFrame (Standard)</option>
+        <option value='embed' <?php selected($mode, 'embed'); ?>>Embed ohne iFrame</option>
+    </select>
+    <p class="description">
+        <strong>iFrame:</strong> das Web Modul läuft in einem eigenen Rahmen (bisheriges Verhalten).<br>
+        <strong>Embed ohne iFrame:</strong> das Web Modul wird direkt in die Seite eingebaut. Die Kursliste steht damit
+        auf Ihrer Domain und ist für Suchmaschinen und KI-Assistenten lesbar. Lädt das Modul nicht, zeigt das Plugin
+        automatisch das iFrame.<br>
+        Einzelne Seiten können die Einstellung mit <code>[kursorganizer_iframe mode="embed"]</code> oder
+        <code>mode="iframe"</code> überschreiben. Zum Zurückschalten genügt es, hier wieder iFrame zu wählen.<br>
+        Hinweis: Die CSS-Einstellungen unten wirken nur im iFrame; je Seite läuft höchstens ein Embed, weitere
+        Shortcodes derselben Seite bleiben iFrames.
+    </p>
+<?php
 }
 
 // Debug section callback
@@ -887,6 +923,11 @@ function kursorganizer_anleitungen_tab_content()
         <h3>Allgemeine Kurssuche</h3>
         <p>Zeigt alle verfügbaren Kurse mit Filtermenü an:</p>
         <code>[kursorganizer_iframe]</code>
+
+        <h3>Einbindung ohne iFrame (Embed-Modus)</h3>
+        <p>Das Web Modul wird direkt in die Seite eingebaut; die Kursliste steht auf Ihrer Domain. Standard für alle Seiten in den Einstellungen („Einbindungsart“), je Seite überschreibbar:</p>
+        <code>[kursorganizer_iframe mode="embed"]</code>
+        <p>Zurück zum iFrame auf einer Seite: <code>[kursorganizer_iframe mode="iframe"]</code>. Alle Shortcode-Attribute funktionieren in beiden Arten. Nur das erste Embed einer Seite wird ohne iFrame eingebaut, weitere Shortcodes derselben Seite bleiben iFrames. Die CSS-Einstellungen („CSS-Datei URL“, „Beispiel-CSS“) wirken nur im iFrame.</p>
 
         <h3>Kurssuche nach Stadt</h3>
         <p>Zeigt alle Kurse in einer bestimmten Stadt an:</p>
@@ -1446,6 +1487,7 @@ function kursOrganizer_iframe_shortcode($atts)
             'coursecategoryid' => '',
             'listtype' => '',
             'showfiltermenu' => 'true',
+            'mode' => '',
         ),
         $atts,
         'kursorganizer_iframe'
@@ -1507,16 +1549,19 @@ function kursOrganizer_iframe_shortcode($atts)
     // MaxWidth-Parameter hinzufügen
     $max_width = isset($options['max_width']) ? trim($options['max_width']) : '1200px';
     $max_width = kursorganizer_format_max_width($max_width);
-    $iframe_src = KursOrganizer_Shortcode_URL_Builder::build(
-        $mainAppUrl,
-        $atts,
-        array(
-            'parent_url' => $parent_url,
-            'cache_version' => KURSORGANIZER_CACHE_VERSION,
-            'cache_buster' => $cache_buster_value,
-            'custom_css_url' => $effective_css_url,
-            'max_width' => $max_width,
-        )
+    $url_context = array(
+        'parent_url' => $parent_url,
+        'cache_version' => KURSORGANIZER_CACHE_VERSION,
+        'cache_buster' => $cache_buster_value,
+        'custom_css_url' => $effective_css_url,
+        'max_width' => $max_width,
+    );
+    $iframe_src = KursOrganizer_Shortcode_URL_Builder::build($mainAppUrl, $atts, $url_context);
+
+    // Einbindungsart: Attribut mode="embed|iframe" schlägt die Einstellung, Standard bleibt das iFrame
+    $embed_mode = KursOrganizer_Shortcode_URL_Builder::resolve_mode(
+        $atts['mode'],
+        isset($options['embed_mode']) ? $options['embed_mode'] : 'iframe'
     );
 
     // Get debug mode setting
@@ -1550,12 +1595,29 @@ function kursOrganizer_iframe_shortcode($atts)
     $iframe_classes = array_filter($iframe_classes, 'is_scalar');
     $iframe_classes = array_values(array_filter(array_map('sanitize_html_class', $iframe_classes)));
 
-    $iframe_html = KursOrganizer_Shortcode_URL_Builder::render_iframe(
-        $unique_id,
-        $iframe_classes,
-        $iframe_style,
-        $iframe_src
-    );
+    // Das Web Modul kann nur einmal je Seite als Embed laufen (Loader und Bundle bedienen ein Element);
+    // weitere Shortcodes derselben Anfrage bleiben iFrames.
+    static $embed_rendered = false;
+    if ($embed_mode === 'embed' && !$embed_rendered) {
+        $embed_rendered = true;
+        // Embed ohne iFrame (ADR 0019 in ko-X-main): <div data-ko-embed …> plus Loader der Web-App.
+        // Der iframe-resizer wird trotzdem geladen: das Plugin-Init trifft kein iFrame mehr, aber der
+        // Loader ruft window.iFrameResize selbst auf, wenn er auf das iFrame zurückfällt.
+        $iframe_html = KursOrganizer_Shortcode_URL_Builder::render_embed(
+            'kursorganizer-embed-' . $iframe_counter,
+            KursOrganizer_Shortcode_URL_Builder::params($atts, $url_context),
+            $iframe_src,
+            KursOrganizer_Shortcode_URL_Builder::render_iframe($unique_id, $iframe_classes, $iframe_style, $iframe_src)
+        );
+        kursorganizer_enqueue_embed_loader($mainAppUrl);
+    } else {
+        $iframe_html = KursOrganizer_Shortcode_URL_Builder::render_iframe(
+            $unique_id,
+            $iframe_classes,
+            $iframe_style,
+            $iframe_src
+        );
+    }
     kursorganizer_enqueue_iframe_resizer();
 
     // Optional: Platzhalter für Callback-Informationen (nur im Debug-Modus)
@@ -1609,6 +1671,7 @@ function kursOrganizer_iframe_shortcode($atts)
             '<strong>MaxWidth-Einstellung (roh):</strong> ' . $max_width_debug . '<br>' .
             '<strong>MaxWidth formatiert:</strong> ' . esc_html($formatted_max_width) . '<br>' .
             '<strong>MaxWidth im URL-Parameter:</strong> <code>maxWidth=' . esc_html(urlencode($formatted_max_width)) . '</code><br>' .
+            '<strong>Einbindungsart:</strong> ' . esc_html($embed_mode) . '<br>' .
             '<strong>iFrame-URL:</strong> <code style="font-size: 11px; word-break: break-all;">' . esc_html($iframe_src) . '</code><br>' .
             '<strong>Option use_example_css:</strong> ' . ($use_example_css ? 'true' : 'false') . ' (Typ: ' . gettype($options['use_example_css'] ?? 'nicht gesetzt') . ')<br>' .
             '<strong>iFrame Protocol:</strong> ' . ($iframe_is_https ? 'HTTPS ✓' : 'HTTP') . '<br>' .
@@ -1619,6 +1682,85 @@ function kursOrganizer_iframe_shortcode($atts)
     return $iframe_html . $callback_html . $debug_info;
 }
 add_shortcode('kursorganizer_iframe', 'kursOrganizer_iframe_shortcode');
+
+/** Embed-Modus: Loader embed.js der Web-App (neben /build/ unter /embed/) nur laden, wenn ein Shortcode ihn braucht. */
+function kursorganizer_enqueue_embed_loader($main_app_url)
+{
+    static $enqueued = false;
+    if ($enqueued) {
+        return;
+    }
+    $normalized_url = KursOrganizer_API::normalize_app_url($main_app_url);
+    if (is_wp_error($normalized_url)) {
+        return;
+    }
+    $enqueued = true;
+    // _v = Plugin-Cache-Version: der Loader selbst kommt ohne Cache von der Web-App und versioniert das
+    // Bundle mit eigenem ?v=; _v hilft nur, wenn ein CDN oder Cache-Plugin den Loader doch festhält.
+    // null als Version verhindert ein zweites ?ver=.
+    wp_enqueue_script(
+        'kursorganizer-embed-loader',
+        KursOrganizer_Shortcode_URL_Builder::embed_loader_url($normalized_url, KURSORGANIZER_CACHE_VERSION),
+        array(),
+        null,
+        true
+    );
+    // Sicherheitsnetz, falls der Loader selbst nicht läuft (404, CSP, Cache-Plugin, Theme ohne wp_footer):
+    // läuft direkt nach dem Skript-Tag, auch wenn das externe Skript scheitert, und setzt dann das
+    // iFrame aus data-fallback-src ein. Nur für Container, die dieses Plugin gerendert hat
+    // (id kursorganizer-embed-N), nur für Adressen im Origin der konfigurierten Web-App, Breite nach
+    // demselben Muster wie serverseitig. Vorher reicht es Kampagnen-Parameter der Seiten-URL
+    // (utm_source, discountCode) in die Rückfall-Adresse durch, wie das Inline-Skript beim iFrame.
+    $app_origin = KursOrganizer_API::get_origin_for_app_url($normalized_url);
+    wp_add_inline_script(
+        'kursorganizer-embed-loader',
+        "(function () {
+            var appOrigin = " . wp_json_encode($app_origin) . ";
+            var nodes = Array.prototype.filter.call(document.querySelectorAll('[data-ko-embed]'), function (node) {
+                return typeof node.id === 'string' && node.id.indexOf('kursorganizer-embed-') === 0;
+            });
+            if (!nodes.length || !appOrigin) { return; }
+            var isOurs = function (src) { return typeof src === 'string' && src.indexOf(appOrigin + '/') === 0; };
+            try {
+                var page = new URLSearchParams(window.location.search);
+                var found = ['utm_source', 'discountCode'].filter(function (key) { return page.get(key); });
+                if (found.length) {
+                    nodes.forEach(function (node) {
+                        var src = node.getAttribute('data-fallback-src');
+                        if (!isOurs(src)) { return; }
+                        var url = new URL(src);
+                        var parent = new URL(url.searchParams.get('parentUrl') || window.location.href.split('?')[0]);
+                        found.forEach(function (key) { parent.searchParams.set(key, page.get(key)); });
+                        url.searchParams.set('parentUrl', parent.toString());
+                        node.setAttribute('data-fallback-src', url.toString());
+                    });
+                }
+            } catch (error) {
+                // Alte Browser ohne URL-API: Rückfall-Adresse bleibt unverändert.
+            }
+            if (window.__koEmbedLoader) { return; }
+            nodes.forEach(function (node) {
+                var src = node.getAttribute('data-fallback-src') || '';
+                if (!isOurs(src) || node.querySelector('iframe')) { return; }
+                var maxWidth = node.getAttribute('data-max-width') || '';
+                if (!/^\\d+(\\.\\d+)?(px|%|em|rem|vh|vw)$/.test(maxWidth)) { maxWidth = '100%'; }
+                node.setAttribute('data-ko-embed-state', 'fallback');
+                node.innerHTML = '';
+                var frame = document.createElement('iframe');
+                frame.className = 'kursorganizer-iframe bt_skip_resize';
+                frame.title = 'KursOrganizer';
+                frame.setAttribute('frameborder', '0');
+                frame.style.cssText = 'width:1px;min-width:100%;max-width:' + maxWidth;
+                frame.src = src;
+                node.appendChild(frame);
+                if (typeof window.iFrameResize === 'function') {
+                    try { window.iFrameResize({ checkOrigin: [appOrigin], heightCalculationMethod: 'lowestElement' }, frame); } catch (e) {}
+                }
+            });
+        })();",
+        'after'
+    );
+}
 
 /** Register the tenant-specific iframe resizer without loading it globally. */
 function kursorganizer_enqueue_scripts()

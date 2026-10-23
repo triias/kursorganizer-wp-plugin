@@ -111,4 +111,76 @@ final class ShortcodeUrlBuilderTest extends TestCase
         self::assertStringNotContainsString('validate_organization_id(', $shortcode_source);
         self::assertStringNotContainsString('wp_remote_', $shortcode_source);
     }
+
+    public function testResolveModePrefersValidAttributeOverSettingAndDefaultsToIframe(): void
+    {
+        self::assertSame('embed', KursOrganizer_Shortcode_URL_Builder::resolve_mode(' Embed ', 'iframe'));
+        self::assertSame('iframe', KursOrganizer_Shortcode_URL_Builder::resolve_mode('iframe', 'embed'));
+        self::assertSame('embed', KursOrganizer_Shortcode_URL_Builder::resolve_mode('', 'embed'));
+        self::assertSame('iframe', KursOrganizer_Shortcode_URL_Builder::resolve_mode('popup', 'unknown'));
+        self::assertSame('iframe', KursOrganizer_Shortcode_URL_Builder::resolve_mode(null, null));
+    }
+
+    public function testEmbedLoaderUrlLivesNextToTheBuildPath(): void
+    {
+        self::assertSame(
+            'https://app.example.kursorganizer.com/embed/embed.js?_v=1.2.12.5',
+            KursOrganizer_Shortcode_URL_Builder::embed_loader_url('https://app.example.kursorganizer.com/build/', '1.2.12.5')
+        );
+    }
+
+    public function testRenderEmbedMapsParamsToDataAttributesAndKeepsIframeOnlyParamsOut(): void
+    {
+        $atts = array(
+            'city' => 'Köln "Süd"',
+            'locationid' => 'location-1',
+            'coursetypeids' => 'type-1,type-2',
+            'dayfilter' => 'Montag,Dienstag',
+            'listtype' => 'interest',
+            'showfiltermenu' => 'false',
+        );
+        $context = array(
+            'parent_url' => 'https://wordpress.example/kurs',
+            'cache_version' => '1.2.12.5',
+            'cache_buster' => 4,
+            'custom_css_url' => 'https://wordpress.example/custom.css',
+            'max_width' => '90%',
+        );
+        $params = KursOrganizer_Shortcode_URL_Builder::params($atts, $context);
+        $fallback = KursOrganizer_Shortcode_URL_Builder::build('https://app.example.kursorganizer.com/build/', $atts, $context);
+        $html = KursOrganizer_Shortcode_URL_Builder::render_embed('kursorganizer-embed-1', $params, $fallback);
+
+        self::assertStringStartsWith('<div data-ko-embed id="kursorganizer-embed-1" class="kursorganizer-embed"', $html);
+        self::assertStringContainsString('data-city="Köln &quot;Süd&quot;"', $html);
+        self::assertStringContainsString('data-location-id="location-1"', $html);
+        self::assertStringContainsString('data-course-type-ids="type-1,type-2"', $html);
+        self::assertStringContainsString('data-day-filter="Montag,Dienstag"', $html);
+        self::assertStringContainsString('data-list-type="interest"', $html);
+        self::assertStringContainsString('data-show-filter-menu="false"', $html);
+        self::assertStringContainsString('data-max-width="90%"', $html);
+        self::assertStringContainsString('data-fallback-src="' . esc_attr($fallback) . '"', $html);
+        self::assertStringContainsString(' style="min-height:400px"', $html);
+        self::assertStringEndsWith('></div>', $html);
+        // iFrame-only: parentUrl, Cache-Parameter, customCssUrl
+        self::assertStringNotContainsString('data-parent-url', $html);
+        self::assertStringNotContainsString('data-custom-css-url', $html);
+        self::assertStringNotContainsString('data-_v', $html);
+        self::assertStringNotContainsString('data-_cb', $html);
+    }
+
+    public function testRenderEmbedEscapesAttributeBreakouts(): void
+    {
+        $params = array('city' => 'x" onmouseover="alert(1)', 'maxWidth' => '1200px');
+        $html = KursOrganizer_Shortcode_URL_Builder::render_embed('id-1', $params, 'https://app.example.kursorganizer.com/build/?x=1');
+        self::assertStringNotContainsString('" onmouseover="', $html);
+        self::assertStringContainsString('data-city="x&quot; onmouseover=&quot;alert(1)"', $html);
+    }
+
+    public function testRenderEmbedWrapsTheIframeInNoscript(): void
+    {
+        $iframe = KursOrganizer_Shortcode_URL_Builder::render_iframe('kursorganizer-iframe-1', array('kursorganizer-iframe'), 'width:1px', 'https://app.example.kursorganizer.com/build/?x=1');
+        $html = KursOrganizer_Shortcode_URL_Builder::render_embed('kursorganizer-embed-1', array('maxWidth' => '1200px'), 'https://app.example.kursorganizer.com/build/?x=1', $iframe);
+        self::assertStringContainsString('<noscript><iframe id="kursorganizer-iframe-1"', $html);
+        self::assertStringEndsWith('</iframe></noscript></div>', $html);
+    }
 }
