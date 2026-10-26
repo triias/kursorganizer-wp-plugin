@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.3.0] - 2026-10-23
+## [1.3.0] - 2026-10-26
 ### Added
 - Neue Einbindungsart „Embed ohne iFrame“: Einstellung „Einbindungsart“ (Standard bleibt iFrame) und Shortcode-Attribut `mode="embed"` bzw. `mode="iframe"` je Seite. Im Embed-Modus baut das Plugin das Web Modul direkt in die Seite ein, die Kursliste steht damit auf der Domain der Schule. Lädt das Modul nicht, zeigt der Loader automatisch das bisherige iFrame. Zurückschalten jederzeit über die Einstellung.
 
