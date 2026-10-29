@@ -112,6 +112,23 @@ final class ShortcodeUrlBuilderTest extends TestCase
         self::assertStringNotContainsString('wp_remote_', $shortcode_source);
     }
 
+    public function testEmbedShortcodeRendersEveryEmbedContainerAndSafetyNetChecksMulti(): void
+    {
+        $source = file_get_contents(dirname(__DIR__) . '/kursorganizer-wp-plugin.php');
+        $start = strpos($source, 'function kursOrganizer_iframe_shortcode');
+        $end = strpos($source, "add_shortcode('kursorganizer_iframe'", $start);
+        $shortcode_source = substr($source, $start, $end - $start);
+
+        // Kein „nur der erste Shortcode wird Embed“ mehr (mehrere Module je Seite, Web-App ab Embed-Loader multi)
+        self::assertStringNotContainsString('$embed_rendered', $shortcode_source);
+        self::assertStringContainsString("if (\$embed_mode === 'embed') {", $shortcode_source);
+
+        $net_start = strpos($source, 'function kursorganizer_enqueue_embed_loader');
+        $net_source = substr($source, $net_start, strpos($source, 'function kursorganizer_enqueue_scripts', $net_start) - $net_start);
+        self::assertStringContainsString('if (loader && loader.multi) { return; }', $net_source);
+        self::assertStringContainsString('if (skipFirst && index === 0) { return; }', $net_source);
+    }
+
     public function testResolveModePrefersValidAttributeOverSettingAndDefaultsToIframe(): void
     {
         self::assertSame('embed', KursOrganizer_Shortcode_URL_Builder::resolve_mode(' Embed ', 'iframe'));
