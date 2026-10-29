@@ -215,5 +215,6 @@ function wpautop($value)
 
 require_once dirname(__DIR__) . '/includes/class-shortcode-url-builder.php';
 require_once dirname(__DIR__) . '/includes/class-validation-state.php';
+require_once dirname(__DIR__) . '/includes/class-custom-css.php';
 require_once dirname(__DIR__) . '/includes/class-kursorganizer-api.php';
 require_once dirname(__DIR__) . '/includes/class-plugin-updater.php';

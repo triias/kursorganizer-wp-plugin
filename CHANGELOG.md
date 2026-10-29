@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.4.0] - 2026-10-29
+### Added
+- Neues Feld „Eigenes CSS für das Web Modul“ in den Einstellungen (CSS-Anpassungen). Das CSS wirkt in beiden Einbindungsarten: Im iFrame liefert das Plugin es unter `/wp-json/kursorganizer/v1/custom-css` als Stylesheet aus (eine bereits gesetzte CSS-Datei-URL wird dort per `@import` mit geladen). Im Embed ohne iFrame übersetzt das Plugin die Selektoren (`.ant-` → `.koe-`, `#content` → `#ko-content`) und gibt sie nur auf Seiten mit Shortcode als Inline-Style aus. Eingabe ohne HTML, höchstens 10.000 Zeichen. Ohne Eintrag verhält sich alles wie bisher.
+
 ## [1.3.0] - 2026-10-26
 ### Added
 - Neue Einbindungsart „Embed ohne iFrame“: Einstellung „Einbindungsart“ (Standard bleibt iFrame) und Shortcode-Attribut `mode="embed"` bzw. `mode="iframe"` je Seite. Im Embed-Modus baut das Plugin das Web Modul direkt in die Seite ein, die Kursliste steht damit auf der Domain der Schule. Lädt das Modul nicht, zeigt der Loader automatisch das bisherige iFrame. Zurückschalten jederzeit über die Einstellung.

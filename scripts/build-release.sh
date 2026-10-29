@@ -16,6 +16,7 @@ cp "$ROOT_DIR/includes/class-kursorganizer-api.php" "$PACKAGE_DIR/includes/"
 cp "$ROOT_DIR/includes/class-plugin-updater.php" "$PACKAGE_DIR/includes/"
 cp "$ROOT_DIR/includes/class-shortcode-url-builder.php" "$PACKAGE_DIR/includes/"
 cp "$ROOT_DIR/includes/class-validation-state.php" "$PACKAGE_DIR/includes/"
+cp "$ROOT_DIR/includes/class-custom-css.php" "$PACKAGE_DIR/includes/"
 
 (
     cd "$DIST_DIR"

@@ -3,7 +3,7 @@ Contributors: KursOrganizer GmbH
 Tags: iframe, courses, kursorganizer, integration
 Requires at least: 5.0
 Tested up to: 7.0
-Stable tag: 1.3.0
+Stable tag: 1.4.0
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -98,8 +98,12 @@ Weitere Beispiele und Optionen finden Sie im Tab "Anleitungen" im Plugin.
 * **Erste Einrichtung**: Beim ersten Öffnen des Plugins werden Sie Schritt für Schritt durch die Konfiguration geführt
 * **Test-Funktion**: Nutzen Sie den "Verbindung testen" Button, um Ihre Eingaben zu überprüfen
 * **Support**: Bei Fragen oder Problemen wenden Sie sich an support@kursorganizer.com
+* **Eigenes CSS**: Unter „CSS-Anpassungen“ können Sie eigenes CSS für das Web Modul hinterlegen. Schreiben Sie es im iFrame-Stil (`.ant-…`, `#content`, `#footer`); es wirkt im iFrame und im Embed ohne iFrame, die Selektoren werden für den Embed automatisch übersetzt
 
 == Changelog ==
+
+= 1.4.0 =
+* Neues Feld „Eigenes CSS für das Web Modul“, wirkt im iFrame (Route `/wp-json/kursorganizer/v1/custom-css`) und im Embed ohne iFrame (übersetzte Selektoren als Inline-Style)
 
 = 1.2.9 =
 * Versionsdetails-Popup für historische Installationsordner wie `kursorganizer-wp-plugin-main` repariert

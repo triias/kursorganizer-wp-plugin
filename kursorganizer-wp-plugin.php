@@ -3,7 +3,7 @@
 Plugin Name: KursOrganizer X iFrame
 Plugin URI: https://kursorganizer.com
 Description: Fügt einen Shortcode hinzu, um das WebModul des KursOrganizers per [kursorganizer_iframe] in eine WordPress-Seite einzubetten.
-Version: 1.3.0
+Version: 1.4.0
 Requires at least: 5.0
 Tested up to: 7.0
 Requires PHP: 7.4
@@ -20,7 +20,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('KURSORGANIZER_VERSION', '1.3.0');
+define('KURSORGANIZER_VERSION', '1.4.0');
 define('KURSORGANIZER_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('KURSORGANIZER_PLUGIN_URL', plugin_dir_url(__FILE__));
 
@@ -36,6 +36,7 @@ require_once KURSORGANIZER_PLUGIN_DIR . 'includes/class-kursorganizer-api.php';
 // Load focused helpers used by the shortcode and background validation.
 require_once KURSORGANIZER_PLUGIN_DIR . 'includes/class-shortcode-url-builder.php';
 require_once KURSORGANIZER_PLUGIN_DIR . 'includes/class-validation-state.php';
+require_once KURSORGANIZER_PLUGIN_DIR . 'includes/class-custom-css.php';
 
 // Initialize the updater
 function kursorganizer_init_updater()
@@ -184,6 +185,13 @@ function kursorganizer_settings_init()
         'kursorganizer_css_section'
     );
     add_settings_field(
+        'custom_css',
+        'Eigenes CSS für das Web Modul',
+        'kursorganizer_custom_css_field_callback',
+        'kursorganizer-settings',
+        'kursorganizer_css_section'
+    );
+    add_settings_field(
         'max_width',
         'Maximale Breite',
         'kursorganizer_max_width_field_callback',
@@ -245,6 +253,20 @@ function kursorganizer_sanitize_settings($input)
         $new_input['custom_css_url'] = kursorganizer_validate_css_url($input['custom_css_url']);
     }
     // Wenn nicht gesetzt, behalte den bestehenden Wert (bereits in $new_input)
+
+    // Eigenes CSS: ohne Tags und `<`, höchstens 10.000 Zeichen; zu lang → alter Wert bleibt
+    if (isset($input['custom_css'])) {
+        $custom_css = KursOrganizer_Custom_CSS::sanitize($input['custom_css']);
+        if ($custom_css === null) {
+            add_settings_error(
+                'kursorganizer_messages',
+                'custom_css_too_long',
+                'Das eigene CSS ist länger als ' . number_format_i18n(KursOrganizer_Custom_CSS::MAX_LENGTH) . ' Zeichen und wurde nicht gespeichert.'
+            );
+        } else {
+            $new_input['custom_css'] = $custom_css;
+        }
+    }
 
     // Validate and save max width
     if (isset($input['max_width'])) {
@@ -497,7 +519,7 @@ function kursorganizer_debug_mode_callback()
 // CSS section callback
 function kursorganizer_css_section_callback()
 {
-    echo '<p>Passen Sie das Aussehen des KursOrganizer iFrames an. Geben Sie die URL zu einer externen CSS-Datei ein.</p>';
+    echo '<p>Passen Sie das Aussehen des KursOrganizer Web Moduls an: entweder über die URL zu einer externen CSS-Datei (nur iFrame) oder direkt über eigenes CSS (iFrame und Embed).</p>';
 }
 
 // Example CSS field callback
@@ -535,9 +557,33 @@ function kursorganizer_css_url_field_callback()
         Geben Sie hier die vollständige URL zu einer externen CSS-Datei ein.<br>
         Beispiel: <code>https://www.fitimwasser.de/wp-content/themes/theme-name/custom-kursorganizer.css</code><br>
         <strong>Hinweis:</strong> Die CSS-Datei muss öffentlich zugänglich sein und CORS-Header erlauben.<br>
+        Wirkt nur in der Einbindungsart iFrame. Für beide Einbindungsarten nutzen Sie das Feld „Eigenes CSS für das Web Modul“.<br>
         <?php if ($use_example_css): ?>
             <strong style="color: #d63638;">Diese Option ist deaktiviert, da die Beispiel-CSS aktiviert ist.</strong>
         <?php endif; ?>
+    </p>
+<?php
+}
+
+// Eigenes CSS (Textfeld), wirkt im iFrame und im Embed
+function kursorganizer_custom_css_field_callback()
+{
+    $options = get_option('kursorganizer_settings');
+    $value = isset($options['custom_css']) ? $options['custom_css'] : '';
+?>
+    <textarea name='kursorganizer_settings[custom_css]' rows="8" class="large-text code" spellcheck="false"
+        maxlength="<?php echo (int) KursOrganizer_Custom_CSS::MAX_LENGTH; ?>"
+        placeholder="#content { background: #f3f8fc; border-radius: 10px; }"><?php echo esc_textarea($value); ?></textarea>
+    <p class="description">
+        Wirkt in beiden Einbindungsarten (iFrame und Embed). Schreiben Sie die Regeln so, wie sie im iFrame gelten:
+        Klassen mit <code>.ant-…</code>, Inhaltsbereich <code>#content</code>, Fußzeile <code>#footer</code>.
+        Im Embed übersetzt das Plugin die Selektoren automatisch (<code>.ant-</code> → <code>.koe-</code>, <code>#content</code> → <code>#ko-content</code>).<br>
+        Beispiel:<br>
+        <code>#content { background: #f3f8fc; border-color: #f3f8fc; border-radius: 10px; overflow: hidden; }</code><br>
+        <code>#content #footer { background: #e6f0f8; }</code><br>
+        <strong>Hinweis:</strong> Regeln ohne diese Selektoren (z. B. <code>body</code> oder <code>h2</code>) wirken im Embed auf die ganze Seite.
+        Ist zusätzlich eine CSS-Datei-URL gesetzt, lädt das iFrame beide; im Embed wirkt nur dieses Feld.
+        Höchstens <?php echo number_format_i18n(KursOrganizer_Custom_CSS::MAX_LENGTH); ?> Zeichen.
     </p>
 <?php
 }
@@ -1522,6 +1568,7 @@ function kursOrganizer_iframe_shortcode($atts)
     // Prüfe sowohl Boolean true als auch String "1" für Checkbox-Werte
     $use_example_css = isset($options['use_example_css']) && ($options['use_example_css'] === true || $options['use_example_css'] === '1' || $options['use_example_css'] === 1);
     $custom_css_url = isset($options['custom_css_url']) ? trim($options['custom_css_url']) : '';
+    $custom_css = isset($options['custom_css']) ? trim($options['custom_css']) : '';
 
     // Aktuelle URL der Elternseite (ohne Preview-Parameter)
     $permalink = get_permalink();
@@ -1542,6 +1589,9 @@ function kursOrganizer_iframe_shortcode($atts)
         // Der PHP-Endpoint setzt automatisch alle notwendigen CORS-Header
         $example_css_url = KURSORGANIZER_PLUGIN_URL . 'assets/css/external-css-example.php';
         $effective_css_url = $example_css_url;
+    } elseif ($custom_css !== '') {
+        // Eigenes CSS: eigene Route des Plugins, die alte CSS-Datei-URL hängt dort per @import mit drin
+        $effective_css_url = kursorganizer_custom_css_route_url($custom_css, $custom_css_url);
     } elseif (!empty($custom_css_url)) {
         $effective_css_url = $custom_css_url;
     }
@@ -1610,6 +1660,9 @@ function kursOrganizer_iframe_shortcode($atts)
             KursOrganizer_Shortcode_URL_Builder::render_iframe($unique_id, $iframe_classes, $iframe_style, $iframe_src)
         );
         kursorganizer_enqueue_embed_loader($mainAppUrl);
+        if ($custom_css !== '') {
+            kursorganizer_enqueue_embed_custom_css($custom_css);
+        }
     } else {
         $iframe_html = KursOrganizer_Shortcode_URL_Builder::render_iframe(
             $unique_id,
@@ -1640,6 +1693,11 @@ function kursOrganizer_iframe_shortcode($atts)
             $css_is_http = strpos($actual_css_url, 'http://') === 0;
             $css_info = 'Beispiel-CSS aktiviert: ' . esc_html($actual_css_url);
             $css_test_link = '<br><a href="' . esc_url($actual_css_url) . '" target="_blank">CSS-Datei direkt testen (sollte im Browser öffnen)</a>';
+        } elseif ($custom_css !== '') {
+            $actual_css_url = $effective_css_url;
+            $css_is_http = strpos($actual_css_url, 'http://') === 0;
+            $css_info = 'Eigenes CSS über Plugin-Route: ' . esc_html($actual_css_url);
+            $css_test_link = '<br><a href="' . esc_url($actual_css_url) . '" target="_blank">CSS direkt testen (sollte im Browser öffnen)</a>';
         } elseif (!empty($custom_css_url)) {
             $actual_css_url = $custom_css_url;
             $css_is_http = strpos($actual_css_url, 'http://') === 0;
@@ -1761,6 +1819,68 @@ function kursorganizer_enqueue_embed_loader($main_app_url)
         'after'
     );
 }
+
+/**
+ * Embed-Modus: eigenes CSS mit übersetzten Selektoren als Inline-Style, nur auf Seiten mit gerendertem Shortcode.
+ * Der Embed-Loader hängt embed.css zur Laufzeit ans Ende von <head>; ein Handle, hinter dem sich einreihen ließe,
+ * gibt es serverseitig nicht. Der Aufruf erfolgt im Shortcode, also nach wp_head, deshalb druckt WordPress das
+ * Style im Footer (print_late_styles): im Body steht es in der Kaskade hinter allem im <head>, auch hinter embed.css.
+ */
+function kursorganizer_enqueue_embed_custom_css($custom_css)
+{
+    static $enqueued = false;
+    if ($enqueued) {
+        return;
+    }
+    $enqueued = true;
+    wp_register_style('kursorganizer-embed-custom-css', false, array(), KURSORGANIZER_VERSION);
+    wp_enqueue_style('kursorganizer-embed-custom-css');
+    wp_add_inline_style('kursorganizer-embed-custom-css', KursOrganizer_Custom_CSS::translate_for_embed($custom_css));
+}
+
+/** iFrame-Modus: URL der Route, die das eigene CSS als text/css ausliefert; v= wechselt mit dem Inhalt. */
+function kursorganizer_custom_css_route_url($custom_css, $custom_css_url = '')
+{
+    return add_query_arg(
+        array('v' => KursOrganizer_Custom_CSS::version($custom_css, $custom_css_url)),
+        rest_url(KursOrganizer_Custom_CSS::ROUTE_NAMESPACE . KursOrganizer_Custom_CSS::ROUTE)
+    );
+}
+
+function kursorganizer_register_custom_css_route()
+{
+    register_rest_route(KursOrganizer_Custom_CSS::ROUTE_NAMESPACE, KursOrganizer_Custom_CSS::ROUTE, array(
+        'methods' => 'GET',
+        'permission_callback' => '__return_true',
+        'callback' => function () {
+            $options = get_option('kursorganizer_settings', array());
+            $custom_css = isset($options['custom_css']) ? trim($options['custom_css']) : '';
+            if ($custom_css === '') {
+                return new WP_Error('kursorganizer_no_custom_css', 'Kein eigenes CSS hinterlegt.', array('status' => 404));
+            }
+            $custom_css_url = isset($options['custom_css_url']) ? trim($options['custom_css_url']) : '';
+            return new WP_REST_Response(KursOrganizer_Custom_CSS::stylesheet($custom_css, $custom_css_url));
+        },
+    ));
+}
+add_action('rest_api_init', 'kursorganizer_register_custom_css_route');
+
+/** Die Route liefert rohes CSS statt JSON: Content-Type text/css, ein Jahr cachebar (v= in der URL wechselt mit dem Inhalt). */
+function kursorganizer_serve_custom_css($served, $result, $request)
+{
+    if ($served || $request->get_route() !== '/' . KursOrganizer_Custom_CSS::ROUTE_NAMESPACE . KursOrganizer_Custom_CSS::ROUTE) {
+        return $served;
+    }
+    if (!($result instanceof WP_REST_Response) || $result->get_status() !== 200) {
+        return $served;
+    }
+    header('Content-Type: text/css; charset=utf-8');
+    header('Cache-Control: public, max-age=31536000');
+    header('Access-Control-Allow-Origin: *');
+    echo $result->get_data(); // phpcs:ignore WordPress.Security.EscapeOutput -- CSS ohne `<`, siehe KursOrganizer_Custom_CSS::sanitize
+    return true;
+}
+add_filter('rest_pre_serve_request', 'kursorganizer_serve_custom_css', 10, 3);
 
 /** Register the tenant-specific iframe resizer without loading it globally. */
 function kursorganizer_enqueue_scripts()
