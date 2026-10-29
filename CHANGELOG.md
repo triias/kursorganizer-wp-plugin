@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.5.0] - 2026-10-29
+### Added
+- Embed ohne iFrame mehrfach auf einer Seite: Jeder Shortcode `[kursorganizer_iframe]` im Embed-Modus baut jetzt ein eigenes Web Modul ein, zum Beispiel drei Kurslisten für drei Standorte untereinander. Bisher lief nur der erste Shortcode als Embed, alle weiteren wurden iFrames. Details und Buchung öffnen sich in dem Modul, in dem geklickt wurde; die anderen bleiben als Liste stehen. Die Anmeldung gilt für alle Module der Seite. Mit einer älteren Web-App-Version (ohne Mehrfach-Unterstützung) zeigt das Plugin für alle Module außer dem ersten weiterhin das iFrame.
+
 ## [1.4.0] - 2026-10-29
 ### Added
 - Neues Feld „Eigenes CSS für das Web Modul“ in den Einstellungen (CSS-Anpassungen). Das CSS wirkt in beiden Einbindungsarten: Im iFrame liefert das Plugin es unter `/wp-json/kursorganizer/v1/custom-css` als Stylesheet aus (eine bereits gesetzte CSS-Datei-URL wird dort per `@import` mit geladen). Im Embed ohne iFrame übersetzt das Plugin die Selektoren (`.ant-` → `.koe-`, `#content` → `#ko-content`) und gibt sie nur auf Seiten mit Shortcode als Inline-Style aus. Eingabe ohne HTML, höchstens 10.000 Zeichen. Ohne Eintrag verhält sich alles wie bisher.

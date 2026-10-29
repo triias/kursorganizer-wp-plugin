@@ -3,7 +3,7 @@
 Plugin Name: KursOrganizer X iFrame
 Plugin URI: https://kursorganizer.com
 Description: Fügt einen Shortcode hinzu, um das WebModul des KursOrganizers per [kursorganizer_iframe] in eine WordPress-Seite einzubetten.
-Version: 1.4.0
+Version: 1.5.0
 Requires at least: 5.0
 Tested up to: 7.0
 Requires PHP: 7.4
@@ -20,7 +20,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('KURSORGANIZER_VERSION', '1.4.0');
+define('KURSORGANIZER_VERSION', '1.5.0');
 define('KURSORGANIZER_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('KURSORGANIZER_PLUGIN_URL', plugin_dir_url(__FILE__));
 
@@ -1645,12 +1645,11 @@ function kursOrganizer_iframe_shortcode($atts)
     $iframe_classes = array_filter($iframe_classes, 'is_scalar');
     $iframe_classes = array_values(array_filter(array_map('sanitize_html_class', $iframe_classes)));
 
-    // Das Web Modul kann nur einmal je Seite als Embed laufen (Loader und Bundle bedienen ein Element);
-    // weitere Shortcodes derselben Anfrage bleiben iFrames.
-    static $embed_rendered = false;
-    if ($embed_mode === 'embed' && !$embed_rendered) {
-        $embed_rendered = true;
+    if ($embed_mode === 'embed') {
         // Embed ohne iFrame (ADR 0019 in ko-X-main): <div data-ko-embed …> plus Loader der Web-App.
+        // Mehrere Shortcodes je Seite ergeben mehrere Container (kursorganizer-embed-N); Loader und Bundle
+        // der Web-App bedienen alle. Ein älteres Bundle ohne diese Fähigkeit (window.__koEmbedLoader.multi
+        // fehlt) bedient nur das erste, das Sicherheitsnetz unten setzt dann für die übrigen das iFrame ein.
         // Der iframe-resizer wird trotzdem geladen: das Plugin-Init trifft kein iFrame mehr, aber der
         // Loader ruft window.iFrameResize selbst auf, wenn er auf das iFrame zurückfällt.
         $iframe_html = KursOrganizer_Shortcode_URL_Builder::render_embed(
@@ -1796,8 +1795,13 @@ function kursorganizer_enqueue_embed_loader($main_app_url)
             } catch (error) {
                 // Alte Browser ohne URL-API: Rückfall-Adresse bleibt unverändert.
             }
-            if (window.__koEmbedLoader) { return; }
-            nodes.forEach(function (node) {
+            // Loader lief: bedient er alle Container (multi), ist nichts zu tun; ein älterer Loader bedient nur
+            // den ersten, die übrigen bekommen hier das iFrame. Loader fehlt: alle bekommen das iFrame.
+            var loader = window.__koEmbedLoader;
+            if (loader && loader.multi) { return; }
+            var skipFirst = !!loader;
+            nodes.forEach(function (node, index) {
+                if (skipFirst && index === 0) { return; }
                 var src = node.getAttribute('data-fallback-src') || '';
                 if (!isOurs(src) || node.querySelector('iframe')) { return; }
                 var maxWidth = node.getAttribute('data-max-width') || '';
