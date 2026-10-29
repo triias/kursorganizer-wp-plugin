@@ -98,8 +98,15 @@ Weitere Beispiele und Optionen finden Sie im Tab "Anleitungen" im Plugin.
 * **Erste Einrichtung**: Beim ersten Öffnen des Plugins werden Sie Schritt für Schritt durch die Konfiguration geführt
 * **Test-Funktion**: Nutzen Sie den "Verbindung testen" Button, um Ihre Eingaben zu überprüfen
 * **Support**: Bei Fragen oder Problemen wenden Sie sich an support@kursorganizer.com
+* **Eigenes CSS**: Unter „CSS-Anpassungen“ können Sie eigenes CSS für das Web Modul hinterlegen. Schreiben Sie es im iFrame-Stil (`.ant-…`, `#content`, `#footer`); es wirkt im iFrame und im Embed ohne iFrame, die Selektoren werden für den Embed automatisch übersetzt
 
 == Changelog ==
+
+= 1.5.0 =
+* Embed ohne iFrame mehrfach auf einer Seite: jeder Shortcode im Embed-Modus baut ein eigenes Web Modul ein (zum Beispiel drei Standorte untereinander); mit älterer Web-App bleibt es beim ersten Embed plus iFrames
+
+= 1.4.0 =
+* Neues Feld „Eigenes CSS für das Web Modul“, wirkt im iFrame (Route `/wp-json/kursorganizer/v1/custom-css`) und im Embed ohne iFrame (übersetzte Selektoren als Inline-Style)
 
 = 1.2.9 =
 * Versionsdetails-Popup für historische Installationsordner wie `kursorganizer-wp-plugin-main` repariert
