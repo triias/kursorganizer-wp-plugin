@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.5.1] - 2026-11-09
+### Added
+- Herkunft der Online-Buchung auch ohne `utm_source`: Das Plugin merkt sich auf jeder Seite der Website je Browser-Tab, von welcher fremden Seite der Besucher kam (nur der Name der Seite, zum Beispiel `www.google.com`, kein Pfad und keine Suchbegriffe). Das Web Modul speichert diesen Wert an der Buchung, wenn der Link kein `utm_source` trägt; die Auswertung „Woher die Buchungen kommen“ in der Verwaltung zeigt dann Google, Instagram, Bing … statt „Ohne Herkunftsangabe“. Funktioniert im iFrame (über den Wrapper der Web-App) und im Embed ohne iFrame. Braucht die Web-App-Version vom 9. November 2026 oder neuer; mit einer älteren Version passiert nichts.
+
 ## [1.5.0] - 2026-10-29
 ### Added
 - Embed ohne iFrame mehrfach auf einer Seite: Jeder Shortcode `[kursorganizer_iframe]` im Embed-Modus baut jetzt ein eigenes Web Modul ein, zum Beispiel drei Kurslisten für drei Standorte untereinander. Bisher lief nur der erste Shortcode als Embed, alle weiteren wurden iFrames. Details und Buchung öffnen sich in dem Modul, in dem geklickt wurde; die anderen bleiben als Liste stehen. Die Anmeldung gilt für alle Module der Seite. Mit einer älteren Web-App-Version (ohne Mehrfach-Unterstützung) zeigt das Plugin für alle Module außer dem ersten weiterhin das iFrame.

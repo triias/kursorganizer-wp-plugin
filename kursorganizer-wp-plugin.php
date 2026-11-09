@@ -3,7 +3,7 @@
 Plugin Name: KursOrganizer X iFrame
 Plugin URI: https://kursorganizer.com
 Description: Fügt einen Shortcode hinzu, um das WebModul des KursOrganizers per [kursorganizer_iframe] in eine WordPress-Seite einzubetten.
-Version: 1.5.0
+Version: 1.5.1
 Requires at least: 5.0
 Tested up to: 7.0
 Requires PHP: 7.4
@@ -20,7 +20,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('KURSORGANIZER_VERSION', '1.5.0');
+define('KURSORGANIZER_VERSION', '1.5.1');
 define('KURSORGANIZER_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('KURSORGANIZER_PLUGIN_URL', plugin_dir_url(__FILE__));
 
@@ -1997,6 +1997,19 @@ function kursorganizer_enqueue_iframe_resizer()
     wp_add_inline_script('iframe-resizer', $inline_script);
 }
 add_action('wp_enqueue_scripts', 'kursorganizer_enqueue_scripts');
+
+/**
+ * Herkunft der Buchung ohne utm_source: auf jeder Seite der Website den fremden Referrer (Google, Instagram …) je Tab
+ * merken. Auf der Kursseite nennt document.referrer sonst nur noch die eigene Website, wenn der Besucher über die
+ * Startseite kam. Den Wert liest das Web Modul: im iFrame über den Wrapper der Web-App (koParentReferrer), im Embed
+ * direkt aus dem sessionStorage. Gespeichert wird nur der Hostname, kein Pfad; ein neuer fremder Referrer ersetzt
+ * den alten, wie ein neuer utm_source-Link. Kein Cookie, nichts verlässt den Browser, bis gebucht wird.
+ */
+function kursorganizer_print_referrer_memory()
+{
+    echo '<script>(function(){try{var r=document.referrer;if(!r||!/^https?:/.test(r))return;var b=function(h){return String(h).toLowerCase().replace(/^www\./,"")};var h=new URL(r).hostname;if(h&&b(h)!==b(window.location.hostname))window.sessionStorage.setItem("koReferrer",h);}catch(e){}})();</script>' . "\n";
+}
+add_action('wp_head', 'kursorganizer_print_referrer_memory');
 
 /**
  * Füge CORS-Header für die externe CSS-Datei hinzu
