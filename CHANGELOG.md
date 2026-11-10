@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.6.0] - 2026-11-10
+### Changed
+- Einrichtung mit nur noch einem Wert: Das Feld „KursOrganizer Organization ID“ und der Knopf „Verbindung testen“ entfallen. Die Web-App URL allein bestimmt, welche Schwimmschule eingebunden wird; nach dem Speichern steht unter dem Feld „Verbunden mit: …“ mit dem Namen der Schwimmschule. Gibt es zu der Adresse keine Schwimmschule, wird wie bisher nicht gespeichert.
+- Die Web-App URL darf ohne `https://` und ohne `/build/` eingetragen werden, zum Beispiel `app.ihrefirma.kursorganizer.com`. Das Plugin ergänzt beides beim Speichern.
+- Andere Einstellungen (CSS, Breite, Einbindungsart) lassen sich auch dann speichern, wenn die KursOrganizer API gerade nicht erreichbar ist. Die Adresse wird nur noch geprüft, wenn sie sich ändert.
+
+### Removed
+- Tägliche Hintergrundprüfung der Organization ID samt Sperre des Shortcodes bei Abweichung. Bestehende Installationen laufen ohne Zutun weiter; die bisher gespeicherte ID wird nicht mehr verwendet.
+
 ## [1.5.1] - 2026-11-09
 ### Added
 - Herkunft der Online-Buchung auch ohne `utm_source`: Das Plugin merkt sich auf jeder Seite der Website je Browser-Tab, von welcher fremden Seite der Besucher kam (nur der Name der Seite, zum Beispiel `www.google.com`, kein Pfad und keine Suchbegriffe). Das Web Modul speichert diesen Wert an der Buchung, wenn der Link kein `utm_source` trägt; die Auswertung „Woher die Buchungen kommen“ in der Verwaltung zeigt dann Google, Instagram, Bing … statt „Ohne Herkunftsangabe“. Funktioniert im iFrame (über den Wrapper der Web-App) und im Embed ohne iFrame. Braucht die Web-App-Version vom 9. November 2026 oder neuer; mit einer älteren Version passiert nichts.
