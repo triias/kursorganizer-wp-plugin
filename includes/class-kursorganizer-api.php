@@ -21,7 +21,8 @@ class KursOrganizer_API
         // Kunden bekommen meist nur den Host (app.ihrefirma.kursorganizer.com): Protokoll ergänzen,
         // bevor esc_url_raw ein http:// davorsetzt.
         if ($url !== '' && !preg_match('#^[a-z][a-z0-9+.-]*://#i', $url)) {
-            $url = 'https://' . $url;
+            // Lokale Entwicklung läuft ohne TLS
+            $url = (preg_match('#^(localhost|127\.0\.0\.1)(:|/|$)#i', $url) ? 'http://' : 'https://') . $url;
         }
         $url = esc_url_raw($url);
         $parsed = parse_url($url);
@@ -251,7 +252,11 @@ class KursOrganizer_API
             // Unbekannte Adresse: companyPublic ist im Schema non-nullable, der Server meldet "keine Schule"
             // deshalb als GraphQL-Fehler mit dem Pfad companyPublic statt als data.companyPublic = null.
             foreach ((array) $result['errors'] as $error) {
-                if (isset($error['path']) && $error['path'] === array('companyPublic')) {
+                if (
+                    isset($error['path'], $error['message'])
+                    && $error['path'] === array('companyPublic')
+                    && strpos((string) $error['message'], 'Cannot return null') === 0
+                ) {
                     return new WP_Error('company_not_found', 'Für diese Web-App URL wurde keine Schwimmschule gefunden.');
                 }
             }
@@ -353,7 +358,8 @@ class KursOrganizer_API
     }
 
     /**
-     * School behind the configured Web-App URL, cached for one hour.
+     * School behind the configured Web-App URL, cached for one hour. A failed lookup is cached for
+     * five minutes so the settings page does not wait for the API timeout on every load during an outage.
      *
      * @return array{name: string, id: string}|WP_Error
      */
@@ -369,14 +375,12 @@ class KursOrganizer_API
 
         $cache_key = 'kursorganizer_company_' . md5($origin);
         $cached = get_transient($cache_key);
-        if (is_array($cached)) {
+        if (is_array($cached) || is_wp_error($cached)) {
             return $cached;
         }
 
         $company = self::lookup_company($origin);
-        if (!is_wp_error($company)) {
-            set_transient($cache_key, $company, HOUR_IN_SECONDS);
-        }
+        set_transient($cache_key, $company, is_wp_error($company) ? 300 : HOUR_IN_SECONDS);
         return $company;
     }
 

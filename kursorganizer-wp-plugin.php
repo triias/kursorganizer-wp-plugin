@@ -284,6 +284,12 @@ function kursorganizer_is_configured()
     return isset($options['main_app_url']) && trim($options['main_app_url']) !== '';
 }
 
+/** Fehlercodes der Web-App URL: Bei diesen bricht das Speichern ab, nichts wird übernommen. */
+function kursorganizer_url_error_codes()
+{
+    return array('invalid_url', 'url_missing_build', 'api_unavailable', 'http_error', 'invalid_response', 'company_not_found');
+}
+
 // Section callback
 function kursorganizer_section_callback()
 {
@@ -300,7 +306,7 @@ function kursorganizer_url_field_callback()
     $has_error = false;
     $settings_errors = get_settings_errors('kursorganizer_messages');
     foreach ($settings_errors as $error) {
-        if (in_array($error['code'], array('invalid_url', 'url_missing_build', 'api_unavailable', 'http_error', 'invalid_response', 'company_not_found'), true)) {
+        if (in_array($error['code'], kursorganizer_url_error_codes(), true)) {
             $has_error = true;
             break;
         }
@@ -630,11 +636,11 @@ function kursorganizer_settings_page()
         </div>
 
         <?php
-        // Bricht das Speichern mit einem Fehler ab (z. B. keine Schwimmschule zur URL), wurde nichts gespeichert:
-        // dann keine Erfolgsmeldung. Zu langes CSS verwirft nur das CSS-Feld, der Rest ist gespeichert.
+        // Bricht das Speichern an der Web-App URL ab (z. B. keine Schwimmschule gefunden), wurde nichts gespeichert:
+        // dann keine Erfolgsmeldung. Andere Fehler (CSS zu lang, CSS-URL ungültig) verwerfen nur ihr Feld.
         $save_aborted = false;
         foreach (get_settings_errors('kursorganizer_messages') as $settings_error) {
-            if ($settings_error['type'] === 'error' && $settings_error['code'] !== 'custom_css_too_long') {
+            if (in_array($settings_error['code'], kursorganizer_url_error_codes(), true)) {
                 $save_aborted = true;
             }
         }
@@ -1945,7 +1951,7 @@ function kursorganizer_check_version_update()
         }
         wp_cache_flush();
         // Bis 1.5.x verglich ein täglicher Cron die Organization ID mit der URL: Termin und Status entfernen.
-        // Die gespeicherte ID bleibt in den Optionen liegen (wird ignoriert, ein Downgrade funktioniert weiter).
+        // Die gespeicherte ID bleibt in den Optionen liegen und wird ignoriert.
         wp_clear_scheduled_hook('kursorganizer_daily_validation');
         delete_option('kursorganizer_validation_state');
         update_option('kursorganizer_plugin_version', $current_version);

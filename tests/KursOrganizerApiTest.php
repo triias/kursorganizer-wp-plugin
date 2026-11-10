@@ -39,6 +39,7 @@ final class KursOrganizerApiTest extends TestCase
             );
         }
         self::assertSame('http://localhost:8081/build/', KursOrganizer_API::normalize_app_url('http://localhost:8081'));
+        self::assertSame('http://localhost:8081/build/', KursOrganizer_API::normalize_app_url('localhost:8081'));
         self::assertSame('invalid_url', KursOrganizer_API::normalize_app_url('')->get_error_code());
         self::assertSame('invalid_url', KursOrganizer_API::normalize_app_url('ftp://app.example.kursorganizer.com')->get_error_code());
     }
@@ -71,7 +72,7 @@ final class KursOrganizerApiTest extends TestCase
         self::assertSame(2, $GLOBALS['ko_test_remote_calls']);
     }
 
-    public function testFailedLookupIsNotCached(): void
+    public function testFailedLookupIsCachedBrieflyAndClearedWithTheCache(): void
     {
         $GLOBALS['ko_test_options']['kursorganizer_settings'] = array(
             'main_app_url' => 'https://app.example.kursorganizer.com/build/',
@@ -79,7 +80,12 @@ final class KursOrganizerApiTest extends TestCase
         $GLOBALS['ko_test_remote_response'] = new WP_Error('timeout', 'secret transport detail');
         self::assertSame('api_unavailable', KursOrganizer_API::get_organization_id()->get_error_code());
 
+        // Während eines Ausfalls wartet die Einstellungsseite nicht bei jedem Aufruf auf den API-Timeout
+        self::assertSame('api_unavailable', KursOrganizer_API::get_company()->get_error_code());
+        self::assertSame(1, $GLOBALS['ko_test_remote_calls']);
+
         $this->setCompanyResponse('org-123');
+        KursOrganizer_API::clear_cache();
         self::assertSame('org-123', KursOrganizer_API::get_organization_id());
     }
 
@@ -118,6 +124,16 @@ final class KursOrganizerApiTest extends TestCase
             )),
         );
         self::assertSame('company_not_found', $this->validate()->get_error_code());
+
+        // Ein anderer Fehler am selben Pfad (Serverfehler im Resolver) ist keine fehlende Schwimmschule
+        $GLOBALS['ko_test_remote_response'] = array(
+            'response' => array('code' => 200),
+            'body' => json_encode(array(
+                'errors' => array(array('message' => 'Bad Request', 'path' => array('companyPublic'))),
+                'data' => null,
+            )),
+        );
+        self::assertSame('invalid_response', $this->validate()->get_error_code());
 
         $GLOBALS['ko_test_remote_response'] = array(
             'response' => array('code' => 200),
