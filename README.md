@@ -16,17 +16,13 @@ Das KursOrganizer X Plugin ermöglicht es Ihnen, Ihre KursOrganizer Web-App (Kur
 
 **Wichtige Informationen für die Installation:**
 
-Für die Einrichtung des Plugins benötigen Sie folgende Informationen von KursOrganizer:
+Für die Einrichtung des Plugins benötigen Sie nur einen Wert von KursOrganizer:
 
-1. **KursOrganizer Web-App URL**
-   Die URL Ihrer persönlichen KursOrganizer Web-App
-   Format: https://app.ihrefirma.kursorganizer.com/build/
+**KursOrganizer Web-App URL**
+   Die Adresse Ihrer persönlichen KursOrganizer Web-App
+   Beispiel: app.ihrefirma.kursorganizer.com
 
-2. **KursOrganizer Organization ID**
-   Ihre eindeutige Organisation-ID (UUID-Format)
-   Beispiel: 123e4567-e89b-12d3-a456-426614174000
-
-**Falls Ihnen diese Werte nicht bekannt sind, wenden Sie sich bitte an:**
+**Falls Ihnen die Adresse nicht bekannt ist, wenden Sie sich bitte an:**
 support@kursorganizer.com
 
 == Installation ==
@@ -44,14 +40,11 @@ support@kursorganizer.com
 Nach der Aktivierung werden Sie zum KursOrganizer X Einstellungsbereich weitergeleitet:
 
    a) Geben Sie Ihre **KursOrganizer Web-App URL** ein
-      (z.B. https://app.ihrefirma.kursorganizer.com/build/)
-   
-   b) Geben Sie Ihre **KursOrganizer Organization ID** ein
-      (Diese ID erhalten Sie von KursOrganizer oder support@kursorganizer.com)
-   
-   c) Klicken Sie auf **"Verbindung testen"** um zu prüfen, ob URL und Organization ID zusammenpassen
-   
-   d) Wenn der Test erfolgreich ist, klicken Sie auf **"Speichern"**
+      (z.B. app.ihrefirma.kursorganizer.com; https:// und /build/ ergänzt das Plugin selbst)
+
+   b) Klicken Sie auf **"Speichern"**
+
+   c) Unter dem Feld steht danach **"Verbunden mit: …"** mit dem Namen Ihrer Schwimmschule
 
 **3. Shortcode verwenden**
 
@@ -94,13 +87,14 @@ Weitere Beispiele und Optionen finden Sie im Tab "Anleitungen" im Plugin.
 
 == Wichtige Hinweise ==
 
-* **Sicherheit**: URL und Organization ID müssen übereinstimmen, sonst funktioniert das Plugin nicht
-* **Erste Einrichtung**: Beim ersten Öffnen des Plugins werden Sie Schritt für Schritt durch die Konfiguration geführt
-* **Test-Funktion**: Nutzen Sie den "Verbindung testen" Button, um Ihre Eingaben zu überprüfen
+* **Verbindung**: Die Web-App URL bestimmt, welche Schwimmschule eingebunden wird. Nach dem Speichern zeigt das Plugin deren Namen an
 * **Support**: Bei Fragen oder Problemen wenden Sie sich an support@kursorganizer.com
 * **Eigenes CSS**: Unter „CSS-Anpassungen“ können Sie eigenes CSS für das Web Modul hinterlegen. Schreiben Sie es im iFrame-Stil (`.ant-…`, `#content`, `#footer`); es wirkt im iFrame und im Embed ohne iFrame, die Selektoren werden für den Embed automatisch übersetzt
 
 == Changelog ==
+
+= 1.6.0 =
+* Einrichtung mit nur noch einem Wert: Die Organization ID und „Verbindung testen“ entfallen, die Web-App URL genügt (auch ohne `https://` und `/build/`); nach dem Speichern zeigt das Plugin den Namen der verbundenen Schwimmschule
 
 = 1.5.0 =
 * Embed ohne iFrame mehrfach auf einer Seite: jeder Shortcode im Embed-Modus baut ein eigenes Web Modul ein (zum Beispiel drei Standorte untereinander); mit älterer Web-App bleibt es beim ersten Embed plus iFrames

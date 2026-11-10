@@ -17,7 +17,13 @@ class KursOrganizer_API
      */
     public static function normalize_app_url($url)
     {
-        $url = esc_url_raw(trim((string) $url));
+        $url = trim((string) $url);
+        // Kunden bekommen meist nur den Host (app.ihrefirma.kursorganizer.com): Protokoll ergänzen,
+        // bevor esc_url_raw ein http:// davorsetzt.
+        if ($url !== '' && !preg_match('#^[a-z][a-z0-9+.-]*://#i', $url)) {
+            $url = 'https://' . $url;
+        }
+        $url = esc_url_raw($url);
         $parsed = parse_url($url);
 
         if (
@@ -206,20 +212,16 @@ class KursOrganizer_API
     }
 
     /**
-     * Validate that an organization ID belongs to a Web-App URL.
+     * Look up the school behind a Web-App URL. The server resolves the tenant from the Origin,
+     * so the URL alone identifies it.
      *
-     * @return true|WP_Error
+     * @return array{name: string, id: string}|WP_Error
      */
-    public static function validate_organization_id($input_url, $input_org_id)
+    public static function lookup_company($input_url)
     {
         $normalized_url = self::normalize_app_url($input_url);
         if (is_wp_error($normalized_url)) {
             return $normalized_url;
-        }
-
-        $input_org_id = strtolower(trim((string) $input_org_id));
-        if ($input_org_id === '') {
-            return new WP_Error('invalid_organization_id', 'Die Organization ID fehlt.');
         }
 
         $query = 'query GetCompany {
@@ -246,21 +248,27 @@ class KursOrganizer_API
             return $result;
         }
         if (!empty($result['errors'])) {
-            return new WP_Error('invalid_response', 'Die API hat die Organization ID nicht bestätigt.');
+            // Unbekannte Adresse: companyPublic ist im Schema non-nullable, der Server meldet "keine Schule"
+            // deshalb als GraphQL-Fehler mit dem Pfad companyPublic statt als data.companyPublic = null.
+            foreach ((array) $result['errors'] as $error) {
+                if (isset($error['path']) && $error['path'] === array('companyPublic')) {
+                    return new WP_Error('company_not_found', 'Für diese Web-App URL wurde keine Schwimmschule gefunden.');
+                }
+            }
+            return new WP_Error('invalid_response', 'Die API konnte die Schwimmschule zu dieser Web-App URL nicht bestätigen.');
         }
         if (!isset($result['data']['companyPublic']) || $result['data']['companyPublic'] === null) {
-            return new WP_Error('company_not_found', 'Für diese Web-App URL wurde keine Organisation gefunden.');
+            return new WP_Error('company_not_found', 'Für diese Web-App URL wurde keine Schwimmschule gefunden.');
         }
-        if (empty($result['data']['companyPublic']['koOrganization']['id'])) {
-            return new WP_Error('invalid_response', 'Die API-Antwort enthält keine Organization ID.');
-        }
-
-        $api_org_id = strtolower(trim((string) $result['data']['companyPublic']['koOrganization']['id']));
-        if (!hash_equals($api_org_id, $input_org_id)) {
-            return new WP_Error('organization_mismatch', 'Die Organization ID stimmt nicht mit der Web-App URL überein.');
+        $company = $result['data']['companyPublic'];
+        if (empty($company['koOrganization']['id'])) {
+            return new WP_Error('invalid_response', 'Die API-Antwort enthält keine Organisation.');
         }
 
-        return true;
+        return array(
+            'name' => isset($company['name']) ? trim((string) $company['name']) : '',
+            'id' => (string) $company['koOrganization']['id'],
+        );
     }
 
     private static function request($api_url, $origin, $query, $operation_name, $variables, $org_id, $additional_headers)
@@ -345,83 +353,42 @@ class KursOrganizer_API
     }
 
     /**
-     * Get organization ID from the API
-     * Uses caching to avoid repeated requests
-     * 
-     * @return string|WP_Error Organization ID or error
+     * School behind the configured Web-App URL, cached for one hour.
+     *
+     * @return array{name: string, id: string}|WP_Error
      */
-    public static function get_organization_id()
+    public static function get_company()
     {
-        // Check if Origin is configured
         $origin = self::get_origin();
         if (empty($origin)) {
             return new WP_Error(
                 'missing_origin',
-                'Die KursOrganizer Web-App URL ist nicht konfiguriert oder ungültig. Bitte gehen Sie zu den Einstellungen und geben Sie eine gültige URL ein (z.B. https://app.ihrefirma.kursorganizer.com/build/).'
+                'Die KursOrganizer Web-App URL ist nicht konfiguriert oder ungültig. Bitte gehen Sie zu den Einstellungen und geben Sie eine gültige URL ein (z.B. app.ihrefirma.kursorganizer.com).'
             );
         }
 
-        // Try to get from cache first
-        $cache_key = 'kursorganizer_org_id_' . md5($origin);
+        $cache_key = 'kursorganizer_company_' . md5($origin);
         $cached = get_transient($cache_key);
-
-        if ($cached !== false) {
+        if (is_array($cached)) {
             return $cached;
         }
 
-        // Query GetCompany to get organization ID
-        // For public queries, we might need x-application-type header
-        $query = 'query GetCompany {
-            companyPublic {
-                name
-                host
-                koOrganization {
-                    id
-                }
-            }
-        }';
-
-        // Try with x-application-type header for public queries
-        $result = self::query($query, 'GetCompany', [], null, [
-            'x-application-type' => 'end-user-app'
-        ]);
-
-        if (is_wp_error($result)) {
-            return $result;
+        $company = self::lookup_company($origin);
+        if (!is_wp_error($company)) {
+            set_transient($cache_key, $company, HOUR_IN_SECONDS);
         }
+        return $company;
+    }
 
-        // Check for GraphQL errors
-        if (isset($result['errors'])) {
-            return new WP_Error(
-                'invalid_response',
-                'Die API konnte die Organisation für die konfigurierte Web-App URL nicht bestätigen.'
-            );
-        }
-
-        // Check if companyPublic is null (API couldn't find company for this origin)
-        if (!isset($result['data']['companyPublic']) || $result['data']['companyPublic'] === null) {
-            return new WP_Error(
-                'company_not_found',
-                sprintf(
-                    'Keine Company für die Origin "%s" gefunden. Bitte prüfen Sie die KursOrganizer Web-App URL.',
-                    $origin
-                )
-            );
-        }
-
-        if (!isset($result['data']['companyPublic']['koOrganization']['id'])) {
-            return new WP_Error(
-                'missing_org_id',
-                'Die Organization ID konnte nicht aus der API-Antwort extrahiert werden. Bitte prüfen Sie Ihre KursOrganizer-Konfiguration.'
-            );
-        }
-
-        $org_id = $result['data']['companyPublic']['koOrganization']['id'];
-
-        // Cache for 1 hour
-        set_transient($cache_key, $org_id, HOUR_IN_SECONDS);
-
-        return $org_id;
+    /**
+     * Organization ID for the x-ko-organization-id header of the generator queries.
+     *
+     * @return string|WP_Error Organization ID or error
+     */
+    public static function get_organization_id()
+    {
+        $company = self::get_company();
+        return is_wp_error($company) ? $company : $company['id'];
     }
 
     /**
@@ -634,6 +601,7 @@ class KursOrganizer_API
             return;
         }
         $origin_hash = md5($origin);
+        delete_transient('kursorganizer_company_' . $origin_hash);
         delete_transient('kursorganizer_org_id_' . $origin_hash);
         delete_transient('kursorganizer_course_types_' . $origin_hash);
         delete_transient('kursorganizer_locations_' . $origin_hash);

@@ -33,9 +33,8 @@ require_once KURSORGANIZER_PLUGIN_DIR . 'includes/class-plugin-updater.php';
 // Load API helper class
 require_once KURSORGANIZER_PLUGIN_DIR . 'includes/class-kursorganizer-api.php';
 
-// Load focused helpers used by the shortcode and background validation.
+// Load focused helpers used by the shortcode.
 require_once KURSORGANIZER_PLUGIN_DIR . 'includes/class-shortcode-url-builder.php';
-require_once KURSORGANIZER_PLUGIN_DIR . 'includes/class-validation-state.php';
 require_once KURSORGANIZER_PLUGIN_DIR . 'includes/class-custom-css.php';
 
 // Initialize the updater
@@ -112,14 +111,6 @@ function kursorganizer_settings_init()
         'main_app_url',
         'KursOrganizer Web-App URL',
         'kursorganizer_url_field_callback',
-        'kursorganizer-settings',
-        'kursorganizer_main_section'
-    );
-
-    add_settings_field(
-        'ko_organization_id',
-        'KursOrganizer Organization ID',
-        'kursorganizer_org_id_field_callback',
         'kursorganizer-settings',
         'kursorganizer_main_section'
     );
@@ -223,14 +214,24 @@ function kursorganizer_sanitize_settings($input)
             return $existing_options;
         }
 
+        // Die URL allein bestimmt die Schwimmschule (der Server leitet den Mandanten aus ihr ab).
+        // Nur bei geänderter URL nachfragen: CSS und Co. bleiben speicherbar, wenn die API gerade nicht antwortet.
+        $existing_url = isset($existing_options['main_app_url']) ? $existing_options['main_app_url'] : '';
+        if ($url !== $existing_url) {
+            $company = KursOrganizer_API::lookup_company($url);
+            if (is_wp_error($company)) {
+                add_settings_error(
+                    'kursorganizer_messages',
+                    $company->get_error_code(),
+                    kursorganizer_validation_error_message($company),
+                    'error'
+                );
+                return $existing_options;
+            }
+        }
+
         $new_input['main_app_url'] = $url;
     }
-
-    // Validate and save Organization ID
-    if (isset($input['ko_organization_id'])) {
-        $new_input['ko_organization_id'] = sanitize_text_field(trim($input['ko_organization_id']));
-    }
-    // Wenn nicht gesetzt, behalte den bestehenden Wert (bereits in $new_input)
 
     // Einbindungsart: iFrame (Standard) oder Embed ohne iFrame; alles andere fällt auf iFrame zurück
     if (isset($input['embed_mode'])) {
@@ -273,24 +274,6 @@ function kursorganizer_sanitize_settings($input)
         $new_input['max_width'] = KursOrganizer_Shortcode_URL_Builder::format_max_width($input['max_width']);
     }
 
-    // Validate Organization ID if both URL and ID are provided
-    $main_app_url = isset($new_input['main_app_url']) ? $new_input['main_app_url'] : '';
-    $ko_organization_id = isset($new_input['ko_organization_id']) ? $new_input['ko_organization_id'] : '';
-
-    if (!empty($main_app_url) && !empty($ko_organization_id)) {
-        $validation_result = KursOrganizer_API::validate_organization_id($main_app_url, $ko_organization_id);
-        if (is_wp_error($validation_result)) {
-            add_settings_error(
-                'kursorganizer_messages',
-                $validation_result->get_error_code(),
-                kursorganizer_validation_error_message($validation_result),
-                'error'
-            );
-            return $existing_options;
-        }
-        KursOrganizer_Validation_State::mark_valid($main_app_url, $ko_organization_id);
-    }
-
     return $new_input;
 }
 
@@ -298,23 +281,13 @@ function kursorganizer_sanitize_settings($input)
 function kursorganizer_is_configured()
 {
     $options = get_option('kursorganizer_settings', array());
-    $main_app_url = isset($options['main_app_url']) ? trim($options['main_app_url']) : '';
-    $ko_organization_id = isset($options['ko_organization_id']) ? trim($options['ko_organization_id']) : '';
-
-    // Both values must be set
-    if (empty($main_app_url) || empty($ko_organization_id)) {
-        return false;
-    }
-
-    // If both values are set, consider it configured
-    // Validation errors are checked separately when saving, not here
-    return true;
+    return isset($options['main_app_url']) && trim($options['main_app_url']) !== '';
 }
 
 // Section callback
 function kursorganizer_section_callback()
 {
-    echo '<p>Bitte geben Sie hier die URL Ihrer KursOrganizer Web-App ein.</p>';
+    echo '<p>Bitte geben Sie hier die Adresse Ihrer KursOrganizer Web-App ein.</p>';
 }
 
 // URL field callback
@@ -341,78 +314,25 @@ function kursorganizer_url_field_callback()
         $field_style = 'border-color: #d63638; box-shadow: 0 0 0 1px #d63638;';
     }
 ?>
-    <input type='url' name='kursorganizer_settings[main_app_url]' value='<?php echo esc_attr($value); ?>' id="main_app_url"
+    <input type='text' name='kursorganizer_settings[main_app_url]' value='<?php echo esc_attr($value); ?>' id="main_app_url"
         class="<?php echo esc_attr($field_class); ?>" style="<?php echo esc_attr($field_style); ?>"
-        placeholder="https://app.ihrefirma.kursorganizer.com/build/" required>
-    <p class="description">
-        Geben Sie hier die vollständige URL Ihrer KursOrganizer Web-App ein. Die URL muss auf <code>/build</code> enden.<br>
-        Beispiel: <code>https://app.ihrefirma.kursorganizer.com/build/</code><br>
-        <strong>Hinweis:</strong> Bei kursorganizer.com Domains wird <code>/build</code> automatisch hinzugefügt, falls es
-        fehlt.
-    </p>
-<?php
-}
-
-// Organization ID field callback
-function kursorganizer_org_id_field_callback()
-{
-    $options = get_option('kursorganizer_settings');
-    $value = isset($options['ko_organization_id']) ? $options['ko_organization_id'] : '';
-
-    // Check if there's a validation error for this field
-    $has_error = false;
-    $settings_errors = get_settings_errors('kursorganizer_messages');
-    foreach ($settings_errors as $error) {
-        if (in_array($error['code'], array('invalid_organization_id', 'organization_mismatch', 'api_unavailable', 'http_error', 'invalid_response'), true)) {
-            $has_error = true;
-            break;
+        placeholder="app.ihrefirma.kursorganizer.com" required>
+    <?php
+    // Zeigt, welche Schwimmschule hinter der gespeicherten Adresse steht (eine Stunde zwischengespeichert)
+    if ($value !== '' && !$has_error) {
+        $company = KursOrganizer_API::get_company();
+        if (is_wp_error($company)) {
+            echo '<p style="color: #d63638;">' . esc_html(kursorganizer_validation_error_message($company)) . '</p>';
+        } elseif ($company['name'] !== '') {
+            echo '<p style="color: #00a32a; font-weight: 600;">✓ Verbunden mit: ' . esc_html($company['name']) . '</p>';
         }
     }
-
-    // Try to get organization ID from API if URL is set but ID is not
-    $auto_fill_id = '';
-    $main_app_url = isset($options['main_app_url']) ? $options['main_app_url'] : '';
-    if (!empty($main_app_url) && empty($value)) {
-        $api_id = KursOrganizer_API::get_organization_id();
-        if (!is_wp_error($api_id)) {
-            $auto_fill_id = $api_id;
-        }
-    }
-
-    // Add error class and style if validation failed
-    $field_class = 'regular-text';
-    $field_style = '';
-    if ($has_error) {
-        $field_class .= ' error';
-        $field_style = 'border-color: #d63638; box-shadow: 0 0 0 1px #d63638;';
-    }
-?>
-    <input type='text' name='kursorganizer_settings[ko_organization_id]' value='<?php echo esc_attr($value); ?>'
-        id="ko_organization_id" class="<?php echo esc_attr($field_class); ?>" style="<?php echo esc_attr($field_style); ?>"
-        placeholder="z.B. 123e4567-e89b-12d3-a456-426614174000">
-    <button type="button" id="test-org-id-btn" class="button" style="margin-left: 10px;">
-        Verbindung testen
-    </button>
-    <span id="test-org-id-result" style="margin-left: 10px;"></span>
-    <?php if (!empty($auto_fill_id)): ?>
-        <button type="button" id="auto-fill-org-id" class="button" style="margin-left: 10px;">
-            Automatisch ausfüllen
-        </button>
-        <script>
-            jQuery(document).ready(function($) {
-                $('#auto-fill-org-id').on('click', function() {
-                    $('input[name="kursorganizer_settings[ko_organization_id]"]').val(
-                        '<?php echo esc_js($auto_fill_id); ?>');
-                });
-            });
-        </script>
-    <?php endif; ?>
+    ?>
     <p class="description">
-        Geben Sie hier die KursOrganizer Organization ID ein. Diese dient zur Sicherheitskontrolle und wird mit der
-        automatisch aus der URL ermittelten ID verglichen.<br>
-        <strong>Hinweis:</strong> Die ID wird beim Speichern automatisch validiert. Bei Nichtübereinstimmung wird eine
-        Warnung angezeigt.<br>
-        Verwenden Sie den Button "Verbindung testen", um die Übereinstimmung von URL und Organization ID zu überprüfen.
+        Geben Sie hier die Adresse Ihrer KursOrganizer Web-App ein, zum Beispiel
+        <code>app.ihrefirma.kursorganizer.com</code>.<br>
+        <code>https://</code> und <code>/build/</code> ergänzt das Plugin beim Speichern selbst. Nach dem Speichern steht
+        hier, mit welcher Schwimmschule die Seite verbunden ist.
     </p>
 <?php
 }
@@ -646,43 +566,20 @@ function kursorganizer_validate_css_url($url)
 function kursorganizer_validation_error_message($error)
 {
     $messages = array(
-        'invalid_url' => 'Die Web-App URL ist ungültig. Bitte verwenden Sie eine vollständige HTTP- oder HTTPS-URL.',
-        'url_missing_build' => 'Die URL muss auf "/build" enden. Andere Pfade werden nicht unterstützt.',
-        'invalid_organization_id' => 'Bitte geben Sie eine Organization ID ein.',
+        'invalid_url' => 'Die Web-App URL ist ungültig. Bitte geben Sie die Adresse Ihrer KursOrganizer Web-App ein, zum Beispiel app.ihrefirma.kursorganizer.com.',
+        'url_missing_build' => 'Die Web-App URL darf keinen anderen Pfad als "/build" enthalten.',
         'api_unavailable' => 'Die KursOrganizer API ist derzeit nicht erreichbar. Bitte versuchen Sie es später erneut.',
         'http_error' => 'Die KursOrganizer API hat einen HTTP-Fehler zurückgegeben. Bitte versuchen Sie es später erneut.',
-        'invalid_response' => 'Die Organization ID konnte wegen einer ungültigen API-Antwort nicht überprüft werden.',
+        'invalid_response' => 'Die Web-App URL konnte wegen einer ungültigen API-Antwort nicht überprüft werden.',
         'company_not_found' => 'Für die eingegebene Web-App URL wurde keine Schwimmschule gefunden.',
-        'organization_mismatch' => 'Die Organization ID stimmt nicht mit der Web-App URL überein.',
     );
 
     if (!is_wp_error($error)) {
-        return 'Die Organization ID konnte nicht überprüft werden.';
+        return 'Die Web-App URL konnte nicht überprüft werden.';
     }
 
     $code = $error->get_error_code();
-    return isset($messages[$code]) ? $messages[$code] : 'Die Organization ID konnte nicht überprüft werden.';
-}
-
-// Backward-compatible wrapper used by third-party integrations.
-function kursorganizer_validate_organization_id($input_url, $input_org_id)
-{
-    if (empty($input_url) || empty($input_org_id)) {
-        return null;
-    }
-
-    $result = KursOrganizer_API::validate_organization_id($input_url, $input_org_id);
-    if (!is_wp_error($result)) {
-        return true;
-    }
-
-    add_settings_error(
-        'kursorganizer_messages',
-        $result->get_error_code(),
-        kursorganizer_validation_error_message($result),
-        'error'
-    );
-    return false;
+    return isset($messages[$code]) ? $messages[$code] : 'Die Web-App URL konnte nicht überprüft werden.';
 }
 
 // Settings page
@@ -733,7 +630,15 @@ function kursorganizer_settings_page()
         </div>
 
         <?php
-        if (isset($_GET['settings-updated'])) {
+        // Bricht das Speichern mit einem Fehler ab (z. B. keine Schwimmschule zur URL), wurde nichts gespeichert:
+        // dann keine Erfolgsmeldung. Zu langes CSS verwirft nur das CSS-Feld, der Rest ist gespeichert.
+        $save_aborted = false;
+        foreach (get_settings_errors('kursorganizer_messages') as $settings_error) {
+            if ($settings_error['type'] === 'error' && $settings_error['code'] !== 'custom_css_too_long') {
+                $save_aborted = true;
+            }
+        }
+        if (isset($_GET['settings-updated']) && !$save_aborted) {
             add_settings_error(
                 'kursorganizer_messages',
                 'kursorganizer_message',
@@ -762,48 +667,20 @@ function kursorganizer_settings_page()
 function kursorganizer_settings_tab_content()
 {
     $is_configured = kursorganizer_is_configured();
-
-    // Check if there's a validation error
-    $has_validation_error = false;
-    $settings_errors = get_settings_errors('kursorganizer_messages');
-    foreach ($settings_errors as $error) {
-        if (in_array($error['code'], array('invalid_url', 'url_missing_build', 'invalid_organization_id', 'organization_mismatch', 'api_unavailable', 'http_error', 'invalid_response', 'company_not_found'), true)) {
-            $has_validation_error = true;
-            break;
-        }
-    }
-
-    // Only disable save button if plugin is NOT configured
-    // If plugin is already configured, allow saving other settings (like debug mode, CSS, etc.)
-    $disable_save_button = !$is_configured;
-
-    $options = get_option('kursorganizer_settings', array());
-    $main_app_url = isset($options['main_app_url']) ? trim($options['main_app_url']) : '';
-    $ko_organization_id = isset($options['ko_organization_id']) ? trim($options['ko_organization_id']) : '';
-    $is_first_time = empty($main_app_url) && empty($ko_organization_id);
 ?>
 
     <!-- Initial Configuration Notice -->
-    <?php if ($is_first_time): ?>
+    <?php if (!$is_configured): ?>
         <div class="card" style="max-width: 800px; margin-bottom: 20px; border-left: 4px solid #2271b1;">
             <h2 style="margin-top: 0;">Willkommen bei KursOrganizer X!</h2>
-            <p>Bevor Sie das Plugin verwenden können, müssen Sie zunächst die folgenden beiden Werte konfigurieren:</p>
-            <ol>
-                <li><strong>KursOrganizer Web-App URL:</strong> Die URL Ihrer KursOrganizer Web-App</li>
-                <li><strong>KursOrganizer Organization ID:</strong> Die Organization ID Ihrer Schwimmschule</li>
-            </ol>
-            <p><strong>Nach der erfolgreichen Konfiguration werden alle weiteren Einstellungen freigeschaltet.</strong></p>
+            <p>Tragen Sie unten die <strong>KursOrganizer Web-App URL</strong> ein, also die Adresse Ihrer KursOrganizer
+                Web-App, und speichern Sie. Das Plugin zeigt Ihnen danach, mit welcher Schwimmschule die Seite verbunden ist.
+            </p>
+            <p><strong>Nach dem Speichern werden alle weiteren Einstellungen freigeschaltet.</strong></p>
             <p style="margin-top: 15px; padding: 10px; background: #e7f3ff; border-left: 3px solid #2271b1;">
-                <strong>Hinweis:</strong> Falls Ihnen diese Werte nicht bekannt sind, wenden Sie sich bitte an <a
+                <strong>Hinweis:</strong> Falls Ihnen die Adresse nicht bekannt ist, wenden Sie sich bitte an <a
                     href="mailto:support@kursorganizer.com">support@kursorganizer.com</a>.
             </p>
-        </div>
-    <?php elseif ($has_validation_error): ?>
-        <div class="card" style="max-width: 800px; margin-bottom: 20px; border-left: 4px solid #d63638;">
-            <h2 style="margin-top: 0; color: #d63638;">⚠️ Konfigurationsfehler</h2>
-            <p><strong>Die URL und die Organization ID stimmen nicht überein.</strong></p>
-            <p>Bitte korrigieren Sie die Einstellungen, bevor Sie fortfahren können. Alle anderen Funktionen sind gesperrt, bis
-                die Konfiguration korrekt ist.</p>
         </div>
     <?php endif; ?>
 
@@ -850,48 +727,15 @@ function kursorganizer_settings_tab_content()
             ?>
             <?php if (!$is_configured): ?>
                 <div style="padding: 15px; background: #f0f0f1; border-left: 4px solid #2271b1; margin-top: 20px;">
-                    <p style="margin: 0;"><strong>Weitere Einstellungen werden nach erfolgreicher Konfiguration
+                    <p style="margin: 0;"><strong>Weitere Einstellungen werden nach dem Speichern der Web-App URL
                             freigeschaltet.</strong></p>
                 </div>
             <?php endif; ?>
             <p class="submit">
-                <?php submit_button('Speichern', 'primary', 'submit', false, array('id' => 'kursorganizer-submit-btn', 'disabled' => $disable_save_button)); ?>
+                <?php submit_button('Speichern', 'primary', 'submit', false, array('id' => 'kursorganizer-submit-btn')); ?>
             </p>
         </form>
     </div>
-    <?php if ($has_validation_error && !$is_configured): ?>
-        <script>
-            jQuery(document).ready(function($) {
-                // Only disable fields if plugin is not configured AND there's a validation error
-                // Disable all form fields except URL and Organization ID
-                $('#kursorganizer-settings-form input:not([name*="main_app_url"]):not([name*="ko_organization_id"]), #kursorganizer-settings-form select, #kursorganizer-settings-form textarea')
-                    .prop('disabled', true).css('opacity', '0.6');
-
-                // Re-enable fields when URL or Organization ID changes
-                $('input[name="kursorganizer_settings[main_app_url]"], input[name="kursorganizer_settings[ko_organization_id]"]')
-                    .on('input change', function() {
-                        // Re-enable all fields temporarily
-                        $('#kursorganizer-settings-form input, #kursorganizer-settings-form select, #kursorganizer-settings-form textarea')
-                            .prop('disabled', false).css('opacity', '1');
-                        $('#kursorganizer-submit-btn').prop('disabled', false);
-                    });
-            });
-        </script>
-    <?php endif; ?>
-
-    <script>
-        jQuery(document).ready(function($) {
-            // Ensure save button is enabled if plugin is configured
-            var urlValue = $('input[name="kursorganizer_settings[main_app_url]"]').val().trim();
-            var orgIdValue = $('#ko_organization_id').val().trim();
-            var isConfigured = urlValue.length > 0 && orgIdValue.length > 0;
-
-            if (isConfigured) {
-                // Enable save button if plugin is configured
-                $('#kursorganizer-submit-btn').prop('disabled', false);
-            }
-        });
-    </script>
 <?php
 }
 
@@ -902,55 +746,29 @@ function kursorganizer_anleitungen_tab_content()
     <!-- Initial Setup Guide -->
     <div class="card" style="max-width: 1200px; margin-bottom: 20px;">
         <h2>Initiales Setup</h2>
-        <p>Bevor Sie das Plugin verwenden können, müssen Sie zunächst die folgenden beiden Werte konfigurieren:</p>
+        <p>Für die Einrichtung brauchen Sie nur einen Wert: die Adresse Ihrer KursOrganizer Web-App.</p>
 
         <h3>Schritt 1: KursOrganizer Web-App URL eingeben</h3>
         <ol>
             <li>Gehen Sie zum Tab <strong>"Einstellungen"</strong></li>
-            <li>Geben Sie im Feld <strong>"KursOrganizer Web-App URL"</strong> die vollständige URL Ihrer KursOrganizer
-                Web-App ein</li>
-            <li>Die URL sollte folgendem Format entsprechen: <code>https://app.ihrefirma.kursorganizer.com/build/</code>
+            <li>Geben Sie im Feld <strong>"KursOrganizer Web-App URL"</strong> die Adresse Ihrer KursOrganizer Web-App ein
             </li>
-            <li>Beispiel: <code>https://app.schwimmschule-xyz.kursorganizer.com/build/</code></li>
+            <li>Beispiel: <code>app.schwimmschule-xyz.kursorganizer.com</code> (<code>https://</code> und
+                <code>/build/</code> ergänzt das Plugin selbst)</li>
         </ol>
 
-        <h3>Schritt 2: KursOrganizer Organization ID eingeben</h3>
-        <ol>
-            <li>Geben Sie im Feld <strong>"KursOrganizer Organization ID"</strong> die Organization ID Ihrer Schwimmschule
-                ein</li>
-            <li>Die Organization ID ist eine eindeutige Kennung (UUID-Format, z.B.
-                <code>123e4567-e89b-12d3-a456-426614174000</code>)
-            </li>
-            <li>Sie erhalten diese ID von Ihrem KursOrganizer Administrator oder aus dem KursOrganizer Backend</li>
-        </ol>
-
-        <h3>Schritt 3: Verbindung testen</h3>
-        <ol>
-            <li>Klicken Sie auf den Button <strong>"Verbindung testen"</strong> neben dem Organization ID Feld</li>
-            <li>Das Plugin prüft automatisch, ob die URL und die Organization ID zusammenpassen</li>
-            <li>Bei erfolgreicher Validierung sehen Sie eine grüne Erfolgsmeldung</li>
-            <li>Bei Fehlern wird das entsprechende Feld rot markiert und eine Fehlermeldung angezeigt</li>
-        </ol>
-
-        <h3>Schritt 4: Einstellungen speichern</h3>
+        <h3>Schritt 2: Einstellungen speichern</h3>
         <ol>
             <li>Klicken Sie auf den Button <strong>"Speichern"</strong></li>
-            <li>Das Plugin validiert die Eingaben automatisch beim Speichern</li>
-            <li>Wenn URL und Organization ID nicht übereinstimmen, werden die Einstellungen nicht gespeichert und eine
-                Fehlermeldung angezeigt</li>
-            <li>Nach erfolgreicher Konfiguration werden alle weiteren Einstellungen freigeschaltet</li>
+            <li>Das Plugin fragt beim Speichern ab, welche Schwimmschule zu der Adresse gehört</li>
+            <li>Unter dem Feld steht danach <strong>"Verbunden mit: …"</strong> mit dem Namen Ihrer Schwimmschule. Steht
+                dort ein anderer Name, ist die Adresse falsch</li>
+            <li>Gibt es zu der Adresse keine Schwimmschule, wird nicht gespeichert und das Feld rot markiert</li>
         </ol>
 
-        <div style="padding: 15px; background: #fff3cd; border-left: 4px solid #2271b1; margin-top: 20px;">
-            <p style="margin: 0;"><strong>Wichtig:</strong> Die URL und die Organization ID müssen zusammenpassen, damit das
-                Plugin funktioniert. Diese Validierung dient der Sicherheit und stellt sicher, dass nur die richtige
-                Schwimmschule eingebunden wird.</p>
-        </div>
-
         <div style="padding: 15px; background: #e7f3ff; border-left: 4px solid #2271b1; margin-top: 20px;">
-            <p style="margin: 0;"><strong>Hinweis:</strong> Falls Ihnen die KursOrganizer Web-App URL oder die KursOrganizer
-                Organization ID nicht bekannt sind, wenden Sie sich bitte an <a
-                    href="mailto:support@kursorganizer.com">support@kursorganizer.com</a>.</p>
+            <p style="margin: 0;"><strong>Hinweis:</strong> Falls Ihnen die KursOrganizer Web-App URL nicht bekannt ist,
+                wenden Sie sich bitte an <a href="mailto:support@kursorganizer.com">support@kursorganizer.com</a>.</p>
         </div>
 
         <h3>Was passiert nach dem Setup?</h3>
@@ -1086,38 +904,14 @@ function kursorganizer_generator_tab_content()
     $is_configured = kursorganizer_is_configured();
 
     if (!$is_configured) {
-        $options = get_option('kursorganizer_settings', array());
-        $main_app_url = isset($options['main_app_url']) ? trim($options['main_app_url']) : '';
-        $ko_organization_id = isset($options['ko_organization_id']) ? trim($options['ko_organization_id']) : '';
-        $is_first_time = empty($main_app_url) && empty($ko_organization_id);
     ?>
         <div class="card" style="max-width: 800px; margin-top: 20px;">
-            <?php if ($is_first_time): ?>
-                <div style="padding: 15px; background: #fff3cd; border-left: 4px solid #2271b1; margin-bottom: 20px;">
-                    <h2 style="margin-top: 0;">Initialkonfiguration erforderlich</h2>
-                    <p><strong>Bevor Sie den Shortcode Generator verwenden können, müssen Sie zunächst die Plugin-Einstellungen
-                            konfigurieren.</strong></p>
-                    <p>Bitte gehen Sie zum Tab <strong>"Einstellungen"</strong> und geben Sie dort die folgenden Werte ein:</p>
-                    <ol>
-                        <li><strong>KursOrganizer Web-App URL</strong></li>
-                        <li><strong>KursOrganizer Organization ID</strong></li>
-                    </ol>
-                    <p>Nach erfolgreicher Konfiguration können Sie den Shortcode Generator verwenden.</p>
-                </div>
-            <?php else: ?>
-                <div style="padding: 15px; background: #fff3cd; border-left: 4px solid #d63638; margin-bottom: 20px;">
-                    <h2 style="margin-top: 0; color: #d63638;">⚠️ Konfigurationsfehler</h2>
-                    <p><strong>Die URL und die Organization ID stimmen nicht überein oder die Konfiguration ist
-                            unvollständig.</strong></p>
-                    <p>Bitte korrigieren Sie die Einstellungen im Tab <strong>"Einstellungen"</strong>, bevor Sie den Shortcode
-                        Generator verwenden können.</p>
-                    <p><strong>Konfigurierte URL:</strong> <code><?php echo esc_html($main_app_url ?: 'Nicht gesetzt'); ?></code>
-                    </p>
-                    <p><strong>Konfigurierte Organization ID:</strong>
-                        <code><?php echo esc_html($ko_organization_id ?: 'Nicht gesetzt'); ?></code>
-                    </p>
-                </div>
-            <?php endif; ?>
+            <div style="padding: 15px; background: #fff3cd; border-left: 4px solid #2271b1; margin-bottom: 20px;">
+                <h2 style="margin-top: 0;">Initialkonfiguration erforderlich</h2>
+                <p>Bitte tragen Sie zuerst im Tab <strong>"Einstellungen"</strong> die
+                    <strong>KursOrganizer Web-App URL</strong> ein und speichern Sie. Danach können Sie den Shortcode
+                    Generator verwenden.</p>
+            </div>
         </div>
     <?php
         return;
@@ -1542,24 +1336,12 @@ function kursOrganizer_iframe_shortcode($atts)
     // Get configured main app URL
     $options = get_option('kursorganizer_settings');
     $mainAppUrl = isset($options['main_app_url']) ? trim($options['main_app_url']) : '';
-    $ko_organization_id = isset($options['ko_organization_id']) ? trim($options['ko_organization_id']) : '';
 
     // Check if plugin is configured
-    if (empty($mainAppUrl) || empty($ko_organization_id)) {
+    if (empty($mainAppUrl)) {
         // Plugin not configured - show message for admins, nothing for regular users
         if (current_user_can('manage_options')) {
-            return '<div style="padding: 15px; background: #fff3cd; border-left: 4px solid #2271b1; margin: 20px 0;"><strong>ℹ️ Plugin nicht konfiguriert:</strong> Bitte konfigurieren Sie das Plugin im WordPress-Admin unter "KursOrganizer X" → "Einstellungen". Geben Sie die KursOrganizer Web-App URL und die Organization ID ein.</div>';
-        } else {
-            // For non-admin users, show nothing
-            return '';
-        }
-    }
-
-    // A confirmed mismatch blocks rendering. Unverified states and temporary
-    // API failures never add latency to a public page request.
-    if (KursOrganizer_Validation_State::is_blocked($mainAppUrl, $ko_organization_id)) {
-        if (current_user_can('manage_options')) {
-            return '<div style="padding: 15px; background: #fff3cd; border-left: 4px solid #d63638; margin: 20px 0;"><strong style="color: #d63638;">⚠️ FEHLER:</strong> Die URL und die Organization ID stimmen nicht überein. Bitte korrigieren Sie die Einstellungen im WordPress-Admin unter "KursOrganizer X" → "Einstellungen".</div>';
+            return '<div style="padding: 15px; background: #fff3cd; border-left: 4px solid #2271b1; margin: 20px 0;"><strong>ℹ️ Plugin nicht konfiguriert:</strong> Bitte tragen Sie im WordPress-Admin unter "KursOrganizer X" → "Einstellungen" die KursOrganizer Web-App URL ein.</div>';
         }
         return '';
     }
@@ -2111,53 +1893,13 @@ function kursorganizer_clear_cache_ajax()
 }
 add_action('wp_ajax_kursorganizer_clear_cache', 'kursorganizer_clear_cache_ajax');
 
-/**
- * AJAX handler for testing Organization ID
- */
-function kursorganizer_test_org_id_ajax()
-{
-    // Verify nonce
-    if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'kursorganizer_admin_nonce')) {
-        wp_send_json_error('Invalid nonce');
-        return;
-    }
-
-    // Check permissions
-    if (!current_user_can('manage_options')) {
-        wp_send_json_error('Insufficient permissions');
-        return;
-    }
-
-    // Get URL and Organization ID from POST data
-    $url = isset($_POST['url']) ? sanitize_text_field($_POST['url']) : '';
-    $org_id = isset($_POST['org_id']) ? sanitize_text_field($_POST['org_id']) : '';
-
-    if (empty($url) || empty($org_id)) {
-        wp_send_json_error('URL und Organization ID müssen beide angegeben werden.');
-        return;
-    }
-
-    $result = KursOrganizer_API::validate_organization_id($url, $org_id);
-    if (is_wp_error($result)) {
-        wp_send_json_error(kursorganizer_validation_error_message($result));
-        return;
-    }
-
-    wp_send_json_success('Die Organization ID stimmt mit der URL überein.');
-}
-add_action('wp_ajax_kursorganizer_test_org_id', 'kursorganizer_test_org_id_ajax');
-
-/** Clear tenant caches and invalidate stale validation state after settings changes. */
+/** Clear tenant caches after the Web-App URL changed. */
 function kursorganizer_settings_updated($old_value, $new_value)
 {
-    $old_value = is_array($old_value) ? $old_value : array();
-    $new_value = is_array($new_value) ? $new_value : array();
-    $old_url = isset($old_value['main_app_url']) ? $old_value['main_app_url'] : '';
-    $new_url = isset($new_value['main_app_url']) ? $new_value['main_app_url'] : '';
-    $old_id = isset($old_value['ko_organization_id']) ? $old_value['ko_organization_id'] : '';
-    $new_id = isset($new_value['ko_organization_id']) ? $new_value['ko_organization_id'] : '';
+    $old_url = is_array($old_value) && isset($old_value['main_app_url']) ? $old_value['main_app_url'] : '';
+    $new_url = is_array($new_value) && isset($new_value['main_app_url']) ? $new_value['main_app_url'] : '';
 
-    if ($old_url === $new_url && $old_id === $new_id) {
+    if ($old_url === $new_url) {
         return;
     }
 
@@ -2166,73 +1908,8 @@ function kursorganizer_settings_updated($old_value, $new_value)
 
     $current_buster = absint(get_option('kursorganizer_cache_buster', 1));
     update_option('kursorganizer_cache_buster', $current_buster + 1);
-
-    if ($new_url !== '' && $new_id !== '' && !KursOrganizer_Validation_State::is_current($new_url, $new_id)) {
-        KursOrganizer_Validation_State::mark_unverified($new_url, $new_id);
-    }
 }
 add_action('update_option_kursorganizer_settings', 'kursorganizer_settings_updated', 10, 2);
-
-/** Ensure the recurring validation event exists. */
-function kursorganizer_ensure_validation_schedule()
-{
-    if (!wp_next_scheduled(KursOrganizer_Validation_State::CRON_HOOK)) {
-        wp_schedule_event(time() + 300, 'daily', KursOrganizer_Validation_State::CRON_HOOK);
-    }
-}
-add_action('init', 'kursorganizer_ensure_validation_schedule');
-
-/** Validate configured tenant data outside the public rendering path. */
-function kursorganizer_run_daily_validation()
-{
-    $options = get_option('kursorganizer_settings', array());
-    $url = isset($options['main_app_url']) ? trim($options['main_app_url']) : '';
-    $organization_id = isset($options['ko_organization_id']) ? trim($options['ko_organization_id']) : '';
-    if ($url === '' || $organization_id === '') {
-        return;
-    }
-
-    $result = KursOrganizer_API::validate_organization_id($url, $organization_id);
-    if (!is_wp_error($result)) {
-        KursOrganizer_Validation_State::mark_valid($url, $organization_id);
-        return;
-    }
-
-    if ($result->get_error_code() === 'organization_mismatch') {
-        KursOrganizer_Validation_State::mark_mismatch($url, $organization_id);
-        return;
-    }
-
-    KursOrganizer_Validation_State::mark_error($url, $organization_id, $result->get_error_code());
-}
-add_action(KursOrganizer_Validation_State::CRON_HOOK, 'kursorganizer_run_daily_validation');
-
-/** Show the last background validation result to administrators. */
-function kursorganizer_validation_admin_notice()
-{
-    if (!current_user_can('manage_options')) {
-        return;
-    }
-
-    $options = get_option('kursorganizer_settings', array());
-    $url = isset($options['main_app_url']) ? trim($options['main_app_url']) : '';
-    $organization_id = isset($options['ko_organization_id']) ? trim($options['ko_organization_id']) : '';
-    if ($url === '' || $organization_id === '' || !KursOrganizer_Validation_State::is_current($url, $organization_id)) {
-        return;
-    }
-
-    $state = KursOrganizer_Validation_State::get();
-    $settings_url = admin_url('admin.php?page=kursorganizer-settings');
-    if (isset($state['match_status']) && $state['match_status'] === 'mismatch') {
-        echo '<div class="notice notice-error"><p><strong>KursOrganizer:</strong> Die gespeicherte Organization ID stimmt nicht mehr mit der Web-App URL überein. Das iFrame wurde blockiert. <a href="' . esc_url($settings_url) . '">Einstellungen prüfen</a></p></div>';
-        return;
-    }
-
-    if (isset($state['last_check_status']) && $state['last_check_status'] === 'error') {
-        echo '<div class="notice notice-warning"><p><strong>KursOrganizer:</strong> Die automatische Organization-ID-Prüfung war zuletzt nicht möglich. Das iFrame bleibt mit der zuletzt bekannten Konfiguration aktiv. <a href="' . esc_url($settings_url) . '">Verbindung prüfen</a></p></div>';
-    }
-}
-add_action('admin_notices', 'kursorganizer_validation_admin_notice');
 
 /**
  * Clear WordPress object cache on plugin activation/update
@@ -2244,16 +1921,6 @@ function kursorganizer_activation_hook()
         KursOrganizer_API::clear_cache();
     }
 
-    $options = get_option('kursorganizer_settings', array());
-    if (
-        !empty($options['main_app_url'])
-        && !empty($options['ko_organization_id'])
-        && !KursOrganizer_Validation_State::is_current($options['main_app_url'], $options['ko_organization_id'])
-    ) {
-        KursOrganizer_Validation_State::mark_unverified($options['main_app_url'], $options['ko_organization_id']);
-    }
-    kursorganizer_ensure_validation_schedule();
-
     // Clear WordPress object cache
     wp_cache_flush();
 
@@ -2261,12 +1928,6 @@ function kursorganizer_activation_hook()
     flush_rewrite_rules();
 }
 register_activation_hook(__FILE__, 'kursorganizer_activation_hook');
-
-function kursorganizer_deactivation_hook()
-{
-    wp_clear_scheduled_hook(KursOrganizer_Validation_State::CRON_HOOK);
-}
-register_deactivation_hook(__FILE__, 'kursorganizer_deactivation_hook');
 
 /**
  * Clear cache when plugin files are updated
@@ -2283,15 +1944,10 @@ function kursorganizer_check_version_update()
             KursOrganizer_API::clear_cache();
         }
         wp_cache_flush();
-        $options = get_option('kursorganizer_settings', array());
-        if (
-            !empty($options['main_app_url'])
-            && !empty($options['ko_organization_id'])
-            && !KursOrganizer_Validation_State::is_current($options['main_app_url'], $options['ko_organization_id'])
-        ) {
-            KursOrganizer_Validation_State::mark_unverified($options['main_app_url'], $options['ko_organization_id']);
-        }
-        kursorganizer_ensure_validation_schedule();
+        // Bis 1.5.x verglich ein täglicher Cron die Organization ID mit der URL: Termin und Status entfernen.
+        // Die gespeicherte ID bleibt in den Optionen liegen (wird ignoriert, ein Downgrade funktioniert weiter).
+        wp_clear_scheduled_hook('kursorganizer_daily_validation');
+        delete_option('kursorganizer_validation_state');
         update_option('kursorganizer_plugin_version', $current_version);
     }
 }
