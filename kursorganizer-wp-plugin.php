@@ -1787,15 +1787,25 @@ function kursorganizer_enqueue_iframe_resizer()
 add_action('wp_enqueue_scripts', 'kursorganizer_enqueue_scripts');
 
 /**
- * Herkunft der Buchung ohne utm_source: auf jeder Seite der Website den fremden Referrer (Google, Instagram …) je Tab
- * merken. Auf der Kursseite nennt document.referrer sonst nur noch die eigene Website, wenn der Besucher über die
- * Startseite kam. Den Wert liest das Web Modul: im iFrame über den Wrapper der Web-App (koParentReferrer), im Embed
- * direkt aus dem sessionStorage. Gespeichert wird nur der Hostname, kein Pfad; ein neuer fremder Referrer ersetzt
- * den alten, wie ein neuer utm_source-Link. Kein Cookie, nichts verlässt den Browser, bis gebucht wird.
+ * Herkunft der Buchung: auf jeder Seite der Website je Tab merken, woher der Besucher kam. Auf der Kursseite nennt
+ * document.referrer sonst nur noch die eigene Website, und ein utm_source im Link ist weg, wenn der Besucher über die
+ * Startseite kam. Gemerkt wird ein einziger Wert, in dieser Reihenfolge (assets/js/source-memory.js):
+ * 1. Name der Klick-Kennung einer bezahlten Anzeige im Link (gclid, gbraid, wbraid, msclkid), nie die Kennung selbst
+ * 2. utm_source des Links
+ * 3. die Android-App, aus der der Link geöffnet wurde (android-app.<Paket>), oder der Hostname der fremden Seite davor
+ * 4. Name der Kennung von Facebook/Instagram oder TikTok (fbclid, ttclid), wenn die App keine Seite davor nennt
+ * Den Wert liest das Web Modul: im iFrame über den Wrapper der Web-App (koParentReferrer), im Embed direkt aus dem
+ * sessionStorage. Welcher Wert welcher Kanal ist, entscheidet die Auswertung in der Verwaltung. Ein neuer Wert ersetzt
+ * den alten. Beim Rücksprung über den Login-Link aus einer Mail (?internalPath=…) wird nichts gemerkt, die Seite davor
+ * wäre das Mail-Programm. Kein Cookie, kein Pfad, keine Suchbegriffe; nichts verlässt den Browser, bis gebucht wird.
  */
 function kursorganizer_print_referrer_memory()
 {
-    echo '<script>(function(){try{var r=document.referrer;if(!r||!/^https?:/.test(r))return;var b=function(h){return String(h).toLowerCase().replace(/^www\./,"")};var h=new URL(r).hostname;if(h&&b(h)!==b(window.location.hostname))window.sessionStorage.setItem("koReferrer",h);}catch(e){}})();</script>' . "\n";
+    // Inline statt eigener Anfrage: das Skript läuft auf jeder Seite der Website
+    $script = @file_get_contents(KURSORGANIZER_PLUGIN_DIR . 'assets/js/source-memory.js');
+    if ($script) {
+        echo '<script>' . $script . '</script>' . "\n";
+    }
 }
 add_action('wp_head', 'kursorganizer_print_referrer_memory');
 

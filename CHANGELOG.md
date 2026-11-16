@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.7.0] - 2026-11-16
+### Added
+- Herkunft der Online-Buchung genauer: Das Plugin merkt sich jetzt auch ein `utm_source` aus dem Link, wenn der Besucher auf einer Seite ohne Web Modul landet (zum Beispiel auf der Startseite) und sich erst danach zur Kursseite durchklickt. Bisher kam `utm_source` nur an, wenn der Link direkt auf die Seite mit dem Web Modul führte.
+- Klicks auf bezahlte Anzeigen werden erkannt: Hängt Google Ads oder Microsoft Ads seine Klick-Kennung an den Link (`gclid`, `gbraid`, `wbraid`, `msclkid`), zeigt die Auswertung „Woher die Buchungen kommen“ die Buchung als „Google Ads“ oder „Microsoft Ads“ statt als Suche. Gemerkt wird nur, dass es eine Anzeige war, nicht die Kennung.
+- Links aus Facebook, Instagram und TikTok werden auch erkannt, wenn die App keine Seite davor nennt (über `fbclid` und `ttclid`, wieder ohne die Kennung zu merken), ebenso Links aus Android-Apps wie der Google-App.
+- Voraussetzungen wie bei 1.5.1 (Web-App-Version vom 9. November 2026 oder neuer). Die Verwaltung ordnet die neuen Werte ab ihrer Version vom November 2026 den Kanälen zu.
+### Fixed
+- Öffnet ein Kunde den Login-Link aus einer Mail, merkt das Plugin auf dieser Seite keine Herkunft mehr. Bisher galt dann das Mail-Programm als Seite davor, bei Gmail im Browser also „Google“.
+
 ## [1.6.0] - 2026-11-10
 ### Changed
 - Einrichtung mit nur noch einem Wert: Das Feld „KursOrganizer Organization ID“ und der Knopf „Verbindung testen“ entfallen. Die Web-App URL allein bestimmt, welche Schwimmschule eingebunden wird; nach dem Speichern steht unter dem Feld „Verbunden mit: …“ mit dem Namen der Schwimmschule. Gibt es zu der Adresse keine Schwimmschule, wird wie bisher nicht gespeichert.

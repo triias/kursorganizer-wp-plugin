@@ -32,9 +32,13 @@ jobs:
         run: |
           find . -name '*.php' -not -path './vendor/*' -print0 | xargs -0 -n1 php -l
           node --check assets/js/admin.js
+          node --check assets/js/source-memory.js
           node --check scripts/check-changelog.mjs
           node --check scripts/sync-version.mjs
           bash -n deploy.sh scripts/build-release.sh scripts/test-updater-integration.sh
+
+      - name: Source memory script
+        run: node --test tests/source-memory.test.mjs
 
       - name: Verify synchronized version
         run: |
