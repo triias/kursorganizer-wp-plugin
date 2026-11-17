@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.7.0] - 2026-11-16
+## [1.7.0] - 2026-11-17
 ### Added
 - Herkunft der Online-Buchung genauer: Das Plugin merkt sich jetzt auch ein `utm_source` aus dem Link, wenn der Besucher auf einer Seite ohne Web Modul landet (zum Beispiel auf der Startseite) und sich erst danach zur Kursseite durchklickt. Bisher kam `utm_source` nur an, wenn der Link direkt auf die Seite mit dem Web Modul führte.
 - Klicks auf bezahlte Anzeigen werden erkannt: Hängt Google Ads oder Microsoft Ads seine Klick-Kennung an den Link (`gclid`, `gbraid`, `wbraid`, `msclkid`), zeigt die Auswertung „Woher die Buchungen kommen“ die Buchung als „Google Ads“ oder „Microsoft Ads“ statt als Suche. Gemerkt wird nur, dass es eine Anzeige war, nicht die Kennung.
